@@ -1,0 +1,509 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{0FF2DAC7-EB9E-43DC-955F-9696445EDC87}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>LCA_Project</RootNamespace>
+    <AssemblyName>LCA_Project</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <Deterministic>true</Deterministic>
+    <PublishUrl>publish\</PublishUrl>
+    <Install>true</Install>
+    <InstallFrom>Disk</InstallFrom>
+    <UpdateEnabled>false</UpdateEnabled>
+    <UpdateMode>Foreground</UpdateMode>
+    <UpdateInterval>7</UpdateInterval>
+    <UpdateIntervalUnits>Days</UpdateIntervalUnits>
+    <UpdatePeriodically>false</UpdatePeriodically>
+    <UpdateRequired>false</UpdateRequired>
+    <MapFileExtensions>true</MapFileExtensions>
+    <ApplicationRevision>0</ApplicationRevision>
+    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
+    <UseApplicationTrust>false</UseApplicationTrust>
+    <BootstrapperEnabled>true</BootstrapperEnabled>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>Button_HomeICO.ico</ApplicationIcon>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="ClosedXML, Version=0.105.0.0, Culture=neutral, PublicKeyToken=fd1eb21b62ae805b, processorArchitecture=MSIL">
+      <HintPath>..\packages\ClosedXML.0.105.0\lib\netstandard2.0\ClosedXML.dll</HintPath>
+    </Reference>
+    <Reference Include="ClosedXML.Parser, Version=1.0.0.0, Culture=neutral, PublicKeyToken=1d5f7376574c51ec, processorArchitecture=MSIL">
+      <HintPath>..\packages\ClosedXML.Parser.2.0.0\lib\netstandard2.0\ClosedXML.Parser.dll</HintPath>
+    </Reference>
+    <Reference Include="DocumentFormat.OpenXml, Version=3.1.1.0, Culture=neutral, PublicKeyToken=8fb06cb64d019a17, processorArchitecture=MSIL">
+      <HintPath>..\packages\DocumentFormat.OpenXml.3.1.1\lib\net46\DocumentFormat.OpenXml.dll</HintPath>
+    </Reference>
+    <Reference Include="DocumentFormat.OpenXml.Framework, Version=3.1.1.0, Culture=neutral, PublicKeyToken=8fb06cb64d019a17, processorArchitecture=MSIL">
+      <HintPath>..\packages\DocumentFormat.OpenXml.Framework.3.1.1\lib\net46\DocumentFormat.OpenXml.Framework.dll</HintPath>
+    </Reference>
+    <Reference Include="EasyModbus, Version=5.6.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\EasyModbusTCP.5.6.0\lib\net40\EasyModbus.dll</HintPath>
+    </Reference>
+    <Reference Include="ExcelNumberFormat, Version=1.1.0.0, Culture=neutral, PublicKeyToken=23c6f5d73be07eca, processorArchitecture=MSIL">
+      <HintPath>..\packages\ExcelNumberFormat.1.1.0\lib\net20\ExcelNumberFormat.dll</HintPath>
+    </Reference>
+    <Reference Include="Guna.UI2, Version=2.0.4.7, Culture=neutral, PublicKeyToken=8b9d14aa5142e261, processorArchitecture=MSIL">
+      <HintPath>..\packages\Guna.UI2.WinForms.2.0.4.7\lib\net48\Guna.UI2.dll</HintPath>
+    </Reference>
+    <Reference Include="LiveCharts, Version=0.9.7.0, Culture=neutral, PublicKeyToken=0bc1f845d1ebb8df, processorArchitecture=MSIL">
+      <HintPath>..\packages\LiveCharts.0.9.7\lib\net45\LiveCharts.dll</HintPath>
+    </Reference>
+    <Reference Include="LiveCharts.WinForms, Version=0.9.7.1, Culture=neutral, PublicKeyToken=0bc1f845d1ebb8df, processorArchitecture=MSIL">
+      <HintPath>..\packages\LiveCharts.WinForms.0.9.7.1\lib\net45\LiveCharts.WinForms.dll</HintPath>
+    </Reference>
+    <Reference Include="LiveCharts.Wpf, Version=0.9.7.0, Culture=neutral, PublicKeyToken=0bc1f845d1ebb8df, processorArchitecture=MSIL">
+      <HintPath>..\packages\LiveCharts.Wpf.0.9.7\lib\net45\LiveCharts.Wpf.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Bcl.HashCode, Version=1.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Bcl.HashCode.1.1.1\lib\net461\Microsoft.Bcl.HashCode.dll</HintPath>
+    </Reference>
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+    <Reference Include="RBush, Version=4.0.0.0, Culture=neutral, PublicKeyToken=c77e27b81f4d0187, processorArchitecture=MSIL">
+      <HintPath>..\packages\RBush.Signed.4.0.0\lib\net47\RBush.dll</HintPath>
+    </Reference>
+    <Reference Include="SixLabors.Fonts, Version=1.0.0.0, Culture=neutral, PublicKeyToken=d998eea7b14cab13, processorArchitecture=MSIL">
+      <HintPath>..\packages\SixLabors.Fonts.1.0.0\lib\netstandard2.0\SixLabors.Fonts.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Buffers, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Buffers.4.5.1\lib\net461\System.Buffers.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Core" />
+    <Reference Include="System.Design" />
+    <Reference Include="System.Management" />
+    <Reference Include="System.Memory, Version=4.0.1.2, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Memory.4.5.5\lib\net461\System.Memory.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Numerics.Vectors, Version=4.1.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Numerics.Vectors.4.5.0\lib\net46\System.Numerics.Vectors.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Runtime.CompilerServices.Unsafe, Version=4.0.6.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Runtime.CompilerServices.Unsafe.4.7.0\lib\netstandard2.0\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web" />
+    <Reference Include="System.Windows.Forms.DataVisualization" />
+    <Reference Include="System.Xaml" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Deployment" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+    <Reference Include="WindowsBase" />
+    <Reference Include="WindowsFormsIntegration" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Form\Devices\Cameras\frmTeachingCamera.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form\Devices\Cameras\frmTeachingCamera.Designer.cs">
+      <DependentUpon>frmTeachingCamera.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Form\Devices\Controllers\frmSekectPos.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form\Devices\Controllers\frmSekectPos.Designer.cs">
+      <DependentUpon>frmSekectPos.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Form\Devices\Controllers\frmSettingControlller.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form\Devices\Controllers\frmSettingControlller.Designer.cs">
+      <DependentUpon>frmSettingControlller.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Form\Devices\Controllers\Resources\frmResources.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form\frmAlarm\frmAlarm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form\frmAlarm\frmAlarm.Designer.cs">
+      <DependentUpon>frmAlarm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Form\frmAlarm\frmLoto.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form\frmAlarm\frmLoto.Designer.cs">
+      <DependentUpon>frmLoto.cs</DependentUpon>
+    </Compile>
+
+    <Compile Include="Form\frmAlarm\frmLotoImei.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form\frmAlarm\frmLotoImei.Designer.cs">
+      <DependentUpon>frmLotoImei.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Form\frmAlarm\frmUser.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form\frmAlarm\frmUser.Designer.cs">
+      <DependentUpon>frmUser.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Form\frmAlarm\frmWatting .cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form\frmAlarm\frmWatting .Designer.cs">
+      <DependentUpon>frmWatting .cs</DependentUpon>
+    </Compile>
+    <Compile Include="Form\frmControl.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form\frmControl.Designer.cs">
+      <DependentUpon>frmControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Form\frmResult\frmOldResult.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form\frmResult\frmOldResult.Designer.cs">
+      <DependentUpon>frmOldResult.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Form\frmSetting.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form\frmSetting.Designer.cs">
+      <DependentUpon>frmSetting.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Form\Signal\frmSignal.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form\Signal\frmSignal.Designer.cs">
+      <DependentUpon>frmSignal.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Form\Teaching\frmCurPos.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form\Teaching\frmCurPos.Designer.cs">
+      <DependentUpon>frmCurPos.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Form\Teaching\frmTeaching.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form\Teaching\frmTeaching.Designer.cs">
+      <DependentUpon>frmTeaching.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Form\Teaching\frmTeaching2.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form\Teaching\frmTeaching2.Designer.cs">
+      <DependentUpon>frmTeaching2.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Form\TesterComunication\LogFileWatcher.cs" />
+    <Compile Include="frmMaincs.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmMaincs.Designer.cs">
+      <DependentUpon>frmMaincs.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Process\ProcessMain.cs" />
+    <Compile Include="Server\Database\DatabaseControllers.cs" />
+    <Compile Include="Form1.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form1.Designer.cs">
+      <DependentUpon>Form1.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Form\Devices\Controllers\frmControllers.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form\Devices\Controllers\frmControllers.Designer.cs">
+      <DependentUpon>frmControllers.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Form\Devices\Controllers\frmControllersParameter.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form\Devices\Controllers\frmControllersParameter.Designer.cs">
+      <DependentUpon>frmControllersParameter.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Server\SqlConnect.cs" />
+    <Compile Include="Services\Camera\cCameraAS.cs" />
+    <Compile Include="Services\Controllers\ControllerServices.cs" />
+    <Compile Include="Services\Controllers\DrawDashboard.cs" />
+    <Compile Include="Services\Controllers\KeyenceHostLinkTcpClient.cs" />
+    <Compile Include="Services\Controllers\PLCRegisterDataControl.cs" />
+    <Compile Include="Services\Logs\frmExport.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Services\Logs\frmExport.Designer.cs">
+      <DependentUpon>frmExport.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Services\Logs\LogProgram.cs" />
+    <Compile Include="Utilities\ButtonSignal.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Utilities\DataforTagControl.cs" />
+    <Compile Include="Utilities\DrawOldResult.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Utilities\frmMultiSignal.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Utilities\LogProgram.cs" />
+    <Compile Include="Utilities\ucButtonDisplayGrid.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Utilities\UIControls.cs" />
+    <EmbeddedResource Include="Form1.resx">
+      <DependentUpon>Form1.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Form\Devices\Cameras\frmTeachingCamera.resx">
+      <DependentUpon>frmTeachingCamera.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Form\Devices\Controllers\frmControllers.resx">
+      <DependentUpon>frmControllers.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Form\Devices\Controllers\frmControllersParameter.resx">
+      <DependentUpon>frmControllersParameter.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Form\Devices\Controllers\frmSekectPos.resx">
+      <DependentUpon>frmSekectPos.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Form\Devices\Controllers\frmSettingControlller.resx">
+      <DependentUpon>frmSettingControlller.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Form\Devices\Controllers\Resources\frmResources.resx">
+      <DependentUpon>frmResources.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Form\frmAlarm\frmAlarm.resx">
+      <DependentUpon>frmAlarm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Form\frmAlarm\frmLoto.resx">
+      <DependentUpon>frmLoto.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Form\frmAlarm\frmUser.resx">
+      <DependentUpon>frmUser.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Form\frmAlarm\frmWatting .resx">
+      <DependentUpon>frmWatting .cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Form\frmControl.resx">
+      <DependentUpon>frmControl.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Form\frmResult\frmOldResult.resx">
+      <DependentUpon>frmOldResult.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Form\frmSetting.resx">
+      <DependentUpon>frmSetting.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Form\Signal\frmSignal.resx">
+      <DependentUpon>frmSignal.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Form\Teaching\frmCurPos.resx">
+      <DependentUpon>frmCurPos.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Form\Teaching\frmTeaching.resx">
+      <DependentUpon>frmTeaching.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Form\Teaching\frmTeaching2.resx">
+      <DependentUpon>frmTeaching2.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmMaincs.resx">
+      <DependentUpon>frmMaincs.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <EmbeddedResource Include="Services\Logs\frmExport.resx">
+      <DependentUpon>frmExport.cs</DependentUpon>
+    </EmbeddedResource>
+    <None Include="packages.config" />
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <Compile Include="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <BootstrapperPackage Include=".NETFramework,Version=v4.8">
+      <Visible>False</Visible>
+      <ProductName>Microsoft .NET Framework 4.8 %28x86 and x64%29</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Button_HomeICO.ico" />
+    <Content Include="Icon\Button_Add.png" />
+    <Content Include="Icon\Button_Camera.png" />
+    <Content Include="Icon\Button_Camera_Live.png" />
+    <Content Include="Icon\Button_Delete.png" />
+    <Content Include="Icon\Button_display.png" />
+    <Content Include="Icon\Button_Down.png" />
+    <Content Include="Icon\Button_Dulicate.png" />
+    <Content Include="Icon\Button_Edit.png" />
+    <Content Include="Icon\Button_Ems.png" />
+    <Content Include="Icon\Button_Filmtrip.png" />
+    <Content Include="Icon\Button_Find.png" />
+    <Content Include="Icon\Button_Home.png" />
+    <Content Include="Icon\Button_HomeICO.ico" />
+    <Content Include="Icon\Button_LightOff.png" />
+    <Content Include="Icon\Button_LightOn.png" />
+    <Content Include="Icon\Button_Lock.png" />
+    <Content Include="Icon\Button_LogOut.png" />
+    <Content Include="Icon\Button_Menu_Camera.png" />
+    <Content Include="Icon\Button_Menu_Folder.png" />
+    <Content Include="Icon\Button_Minus.png" />
+    <Content Include="Icon\Button_Pause.png" />
+    <Content Include="Icon\Button_Pause_1.png" />
+    <Content Include="Icon\Button_Play.png" />
+    <Content Include="Icon\Button_Play1.png" />
+    <Content Include="Icon\Button_Play11.png" />
+    <Content Include="Icon\Button_Play_Red.png" />
+    <Content Include="Icon\Button_Record.png" />
+    <Content Include="Icon\Button_Reset.png" />
+    <Content Include="Icon\Button_Right.png" />
+    <Content Include="Icon\Button_Right1.png" />
+    <Content Include="Icon\Button_Rotate_Back.png" />
+    <Content Include="Icon\Button_Rotate_Forward.png" />
+    <Content Include="Icon\Button_Run.png" />
+    <Content Include="Icon\Button_Run_Back.png" />
+    <Content Include="Icon\Button_Run_First.png" />
+    <Content Include="Icon\Button_Run_Last.png" />
+    <Content Include="Icon\Button_Run_Loop.png" />
+    <Content Include="Icon\Button_Run_Loop_1.png" />
+    <Content Include="Icon\Button_Run_Man.png" />
+    <Content Include="Icon\Button_Run_Next.png" />
+    <Content Include="Icon\Button_Save.png" />
+    <Content Include="Icon\Button_Thumb.png" />
+    <Content Include="Icon\Button_Unlock.png" />
+    <Content Include="Icon\Button_Up.png" />
+    <Content Include="Icon\Button_ZoomFit.png" />
+    <Content Include="Icon\Button_ZoomLarge.png" />
+    <Content Include="Icon\Button_ZoomSmall.png" />
+    <Content Include="Icon\download.png" />
+    <Content Include="Icon\Form_Close.png" />
+    <Content Include="Icon\Form_Maximum.png" />
+    <Content Include="Icon\Form_Minimize.png" />
+    <Content Include="Icon\Form_Pin.png" />
+    <Content Include="Icon\Form_Pin_Free.png" />
+    <Content Include="Icon\ICO-Login.ico" />
+    <Content Include="Icon\ICO-Record.ico" />
+    <Content Include="Icon\ICO-Tool.ico" />
+    <Content Include="Icon\IcoEdit.ico" />
+    <Content Include="Icon\IcoLogin.ico" />
+    <Content Include="Icon\icons8-alarm-50.png" />
+    <Content Include="Icon\icons8-analytics-64.png" />
+    <Content Include="Icon\icons8-help.gif" />
+    <Content Include="Icon\icons8-loading.gif" />
+    <Content Include="Icon\icons8-log-48.png" />
+    <None Include="Icon\icons\Button_Rotate_Forward.png" />
+    <None Include="Icon\icons\Button_Up.png" />
+    <Content Include="Icon\IcoOutput.ico" />
+    <Content Include="Icon\IcoResult.ico" />
+    <Content Include="Icon\IcoResultType.ico" />
+    <Content Include="Icon\Ico_Software.ico" />
+    <Content Include="Icon\Ico_Variable.ico" />
+    <Content Include="Icon\J9f8h76q9o.gif" />
+    <Content Include="Icon\Loadding.gif" />
+    <Content Include="Icon\logo-removebg-preview-1.png" />
+    <Content Include="Icon\MenuLogin.png" />
+    <Content Include="Icon\Menu_Barcode.png" />
+    <Content Include="Icon\Menu_Barcode_Ico.ico" />
+    <Content Include="Icon\Menu_Camera.png" />
+    <Content Include="Icon\Menu_Camera_Ico.ico" />
+    <Content Include="Icon\Menu_Controller.png" />
+    <Content Include="Icon\Menu_Controller_ICO.ico" />
+    <Content Include="Icon\Menu_Device.png" />
+    <Content Include="Icon\Menu_Device_2.png" />
+    <Content Include="Icon\Menu_Display.png" />
+    <Content Include="Icon\Menu_EditImage.png" />
+    <Content Include="Icon\Menu_Home.png" />
+    <Content Include="Icon\Menu_Home1.png" />
+    <Content Include="Icon\Menu_IO.png" />
+    <Content Include="Icon\Menu_Light.png" />
+    <Content Include="Icon\Menu_LightICO.ico" />
+    <Content Include="Icon\Menu_Monitor.png" />
+    <Content Include="Icon\Menu_Output.png" />
+    <Content Include="Icon\Menu_Program.ico" />
+    <Content Include="Icon\Menu_Program.png" />
+    <Content Include="Icon\Menu_Result.png" />
+    <Content Include="Icon\Menu_ResultType.png" />
+    <Content Include="Icon\Menu_System.png" />
+    <Content Include="Icon\Menu_Tools.png" />
+    <Content Include="Icon\Menu_Variable.png" />
+    <Content Include="Icon\Picture1.png" />
+    <Content Include="Icon\Picture2.png" />
+    <Content Include="Icon\R %281%29.jfif" />
+    <Content Include="Icon\R-_1_.ico" />
+    <Content Include="Icon\R.jfif" />
+    <Content Include="Icon\Screenshot 2025-07-16 142145.png" />
+    <Content Include="Icon\Smaller Network Connection Background.gif" />
+    <Content Include="Icon\State_Green.png" />
+    <Content Include="Icon\State_Red.png" />
+    <Content Include="Icon\State_Yellow.png" />
+    <Content Include="Icon\z6926212960346_6f4e8ecf6035396e8cd47e39d66d4c9b.jpg" />
+    <Content Include="Icon\z6926232511691_191bd0209dc306cf42f40ca289ee595f.jpg" />
+    <Content Include="Icon\Ảnh1.png" />
+    <None Include="Resources\z7034644005131_de3582810b09347c4ea4d794a3e8a39c.jpg" />
+    <None Include="Resources\Control.png" />
+    <None Include="Resources\icons8-control-32 %281%29.png" />
+    <None Include="Resources\icons8-control-32.png" />
+    <None Include="Resources\icons8-setting-50.png" />
+    <None Include="Resources\icons8-home-50-2.png" />
+    <None Include="Resources\icons8-home-50.png" />
+    <None Include="Resources\icons8-view-50.png" />
+    <None Include="Resources\icons8-view-50-2.png" />
+    <None Include="Resources\icons8-themes-50.png" />
+    <None Include="Resources\icons8-themes-50-2.png" />
+    <None Include="Resources\icons8-camera-40 %281%29.png" />
+    <None Include="Resources\icons8-camera-50.png" />
+    <None Include="Resources\icons8-camera-40.png" />
+    <None Include="Resources\icons8-wrench-50.png" />
+    <None Include="Resources\icons8-wrench-50-2.png" />
+    <None Include="Resources\icons8-bell-48.png" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

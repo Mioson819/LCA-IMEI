@@ -1,0 +1,21 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build",
+            "type": "shell",
+            "command": "msbuild",
+            "args": [
+                "${workspaceFolder}/LCA_Project/LCA_Project.csproj",
+                "/p:Configuration=Debug",
+                "/p:PlatformTarget=x64",
+                "/t:Build"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": "$msCompile"
+        }
+    ]
+}

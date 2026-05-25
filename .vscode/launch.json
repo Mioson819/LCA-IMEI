@@ -1,0 +1,16 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug LCA_Project",
+            "type": "clr",
+            "request": "launch",
+            "program": "${workspaceFolder}/LCA_Project/bin/Debug/LCA_Project.exe",
+            "args": [],
+            "cwd": "${workspaceFolder}/LCA_Project/bin/Debug",
+            "stopAtEntry": false,
+            "console": "internalConsole",
+            "preLaunchTask": "build"
+        }
+    ]
+}
