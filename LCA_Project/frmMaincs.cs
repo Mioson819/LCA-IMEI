@@ -95,7 +95,7 @@ namespace LCA_Project
         private void CamOnline1()
         {
             cam1 = new CameraAS("192.168.0.77", 7890);
-            //cam1.Connect();
+            cam1.Connect();
             cam1._send += SendDataToPLC;
             cam1._StatusJob += ChangeJob;
         }
@@ -109,7 +109,7 @@ namespace LCA_Project
         private void CamOnline2()
         {
             cam2 = new CameraAS("192.168.0.78", 7890);
-            //cam2.Connect();
+            cam2.Connect();
             cam2._send += SendDataToPLC;
             cam2._StatusJob += ChangeJob;
         }
@@ -633,6 +633,29 @@ namespace LCA_Project
                             SWImei.FillColor = System.Drawing.Color.Red;
                             SWImei.Text = "Mode: LCA Module";
                             conimiei = false;
+                        }
+                        else
+                        {
+                            SWImei.FillColor = System.Drawing.Color.Green;
+                            SWImei.Text = "Mode: IMEI Actuator";
+                            conimiei = true;
+                            System.Windows.Forms.MessageBox.Show("Failed to Reset SWImei.");
+                        }
+                        // Reset bit ChangeModeTrayInput về 0 trên tất cả form đã đóng
+                        foreach (string st in new[] { "Station1", "Station2", "Station3", "Station4" })
+                        {
+                            try
+                            {
+                                var d = DatabaseControllers.Instance.GetDataByInputResults(st);
+                                if (d == null) continue;
+                                string tag = (d.ChangeModeTrayInput + "").Trim();
+                                if (string.IsNullOrWhiteSpace(tag)) continue;
+                                string[] parts = tag.Split('.');
+                                string word = parts[0];
+                                int bit = parts.Length > 1 && int.TryParse(parts[1], out int b) ? b : 0;
+                                this.plc.ResetBitInWord(word, bit);
+                            }
+                            catch { }
                         }
                     }
                     catch (Exception ex)

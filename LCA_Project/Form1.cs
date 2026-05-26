@@ -636,15 +636,19 @@ namespace LCA_Project
             ReadDataforLoad();
             ReadDataForNG4();
 
-            // Đọc bit 0 của word ChangeModeTrayInput (dạng "DM2512") từ PLC
-            // để quyết định panel Unload khi form load
+            // Đọc bit ChangeModeTrayInput từ PLC để quyết định panel Unload khi form load
+            // Tag hỗ trợ 2 dạng: "DM2512" (word, dùng bit 0) hoặc "MR2512.1" (word.bit)
             {
                 bool isImeiMode = false;
                 if (!string.IsNullOrWhiteSpace(_changeModeTag))
                 {
                     try
                     {
-                        isImeiMode = plc.ReadBitFromWord(_changeModeTag, 0);
+                        string word; int bit;
+                        if (TryParseTag(_changeModeTag, out word, out bit))
+                            isImeiMode = plc.ReadBitFromWord(word, bit);   // dạng MR2512.1
+                        else
+                            isImeiMode = plc.ReadBitFromWord(_changeModeTag, 0); // dạng DM2512
                     }
                     catch (Exception ex)
                     {
@@ -652,9 +656,9 @@ namespace LCA_Project
                     }
                 }
                 if (isImeiMode)
-                    ReadDataforUnloadImei();   // bit0 = 1 → Mode IMEI
+                    ReadDataforUnloadImei();   // bit = 1 → Mode IMEI
                 else
-                    ReadDataforUnload();        // bit0 = 0 → Mode LCA
+                    ReadDataforUnload();        // bit = 0 → Mode LCA
             }
             timer = new System.Timers.Timer(2500);
             timer.Elapsed += Timer_Elapsed;
@@ -1117,9 +1121,17 @@ namespace LCA_Project
             string tag = btn?.Tag as string;
             if (string.IsNullOrWhiteSpace(tag)) return;
 
-            // Tag dạng "DM2512" — đọc bit 0 để biết trạng thái hiện tại
+            // Hỗ trợ 2 dạng tag: "DM2512" (word, bit 0) hoặc "MR2512.1" (word.bit)
+            string word; int bit;
+            if (!TryParseTag(tag, out word, out bit))
+            {
+                word = tag;   // dạng DM2512 → dùng bit 0
+                bit = 0;
+            }
+
+            // Đọc trạng thái hiện tại rồi toggle
             bool current = false;
-            try { current = plc.ReadBitFromWord(tag, 0); }
+            try { current = plc.ReadBitFromWord(word, bit); }
             catch (Exception ex)
             {
                 LogProgram.WriteLog("ChangeModeTrayInput read bit error: " + ex, this.Nametation);
@@ -1128,9 +1140,9 @@ namespace LCA_Project
             try
             {
                 if (current)
-                    await TryResetBitWithVerify(tag, 0);   // đang ON → tắt
+                    await TryResetBitWithVerify(word, bit);   // đang ON → tắt
                 else
-                    await TrySetBitWithVerify(tag, 0);     // đang OFF → bật
+                    await TrySetBitWithVerify(word, bit);     // đang OFF → bật
             }
             catch (Exception ex)
             {
@@ -1394,5 +1406,17 @@ namespace LCA_Project
             frmControl _frmControl = new frmControl(this.nameStation, this.plc);
             _frmControl.Show();
         }
+        public void ResetChangeModeTag()
+        {
+            if (string.IsNullOrWhiteSpace(_changeModeTag)) return;
+            string word; int bit;
+            if (!TryParseTag(_changeModeTag, out word, out bit))
+            {
+                word = _changeModeTag;  // dạng DM2512 → bit 0
+                bit = 0;
+            }
+            plc.ResetBitInWord(word, bit);  // set = 0
+        }
     }
+
 }
