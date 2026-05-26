@@ -106,6 +106,7 @@ namespace LCA_Project
         private string ResetALL;
         private string ResetTrayNG4;
         private string ResetTrayNG;
+        private string _changeModeTag;   // Tag PLC cho ChangeModeTrayInput (dạng "WORD.BIT")
         private int nX;
         private int ny;
         private int nYNG4;
@@ -634,6 +635,27 @@ namespace LCA_Project
             StartBatchPoller();
             ReadDataforLoad();
             ReadDataForNG4();
+
+            // Đọc bit 0 của word ChangeModeTrayInput (dạng "DM2512") từ PLC
+            // để quyết định panel Unload khi form load
+            {
+                bool isImeiMode = false;
+                if (!string.IsNullOrWhiteSpace(_changeModeTag))
+                {
+                    try
+                    {
+                        isImeiMode = plc.ReadBitFromWord(_changeModeTag, 0);
+                    }
+                    catch (Exception ex)
+                    {
+                        LogProgram.WriteLog("Form1_Load – Read ChangeModeTrayInput error: " + ex, this.Nametation);
+                    }
+                }
+                if (isImeiMode)
+                    ReadDataforUnloadImei();   // bit0 = 1 → Mode IMEI
+                else
+                    ReadDataforUnload();        // bit0 = 0 → Mode LCA
+            }
             timer = new System.Timers.Timer(2500);
             timer.Elapsed += Timer_Elapsed;
             timer.AutoReset = true;
@@ -676,6 +698,10 @@ namespace LCA_Project
             PropertyInfo Loto = type.GetProperty("Loto", BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
             object data6 = DatabaseControllers.Instance.GetDataByInputResults(this.nameStation);
             this._Loto = Loto != null ? (Loto.GetValue(data6) + "").Trim() : null;
+            // ChangeModeTrayInput — lưu địa chỉ tag (WORD.BIT) để Form1_Load đọc bit quyết định chế độ Unload
+            PropertyInfo pChangeModeInput = type.GetProperty("ChangeModeTrayInput", BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
+            object dataChangeModeInput = DatabaseControllers.Instance.GetDataByInputResults(this.nameStation);
+            _changeModeTag = pChangeModeInput != null ? (pChangeModeInput.GetValue(dataChangeModeInput) + "").Trim() : null;
             _labelMonitors.Clear();
             _bitMonitors.Clear();
             foreach (System.Windows.Forms.Control control in GetAllControls(this))
