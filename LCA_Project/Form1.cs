@@ -764,6 +764,12 @@ namespace LCA_Project
                     {
                         continue;
                     }
+                    else if (nameUpper == "CHANGEMODETRAYINPUT")
+                    {
+                        // Handler riêng: toggle bit rồi đóng form
+                        buttonGradion.Click -= ChangeModeTrayInput_Click;
+                        buttonGradion.Click += ChangeModeTrayInput_Click;
+                    }
                     else
                     {
                         buttonGradion.Click += Clicks;
@@ -1102,6 +1108,40 @@ namespace LCA_Project
         {
             _frmCurPos = new frmCurPos(this.nameStation, this.plc);
             _frmCurPos.Show();
+        }
+
+        // ====== ChangeModeTrayInput: toggle bit PLC rồi đóng form ======
+        private async void ChangeModeTrayInput_Click(object sender, EventArgs e)
+        {
+            Guna2GradientButton btn = sender as Guna2GradientButton;
+            string tag = btn?.Tag as string;
+            if (string.IsNullOrWhiteSpace(tag)) return;
+
+            // Tag dạng "DM2512" — đọc bit 0 để biết trạng thái hiện tại
+            bool current = false;
+            try { current = plc.ReadBitFromWord(tag, 0); }
+            catch (Exception ex)
+            {
+                LogProgram.WriteLog("ChangeModeTrayInput read bit error: " + ex, this.Nametation);
+            }
+
+            try
+            {
+                if (current)
+                    await TryResetBitWithVerify(tag, 0);   // đang ON → tắt
+                else
+                    await TrySetBitWithVerify(tag, 0);     // đang OFF → bật
+            }
+            catch (Exception ex)
+            {
+                LogProgram.WriteLog("ChangeModeTrayInput toggle error: " + ex, this.Nametation);
+            }
+
+            // Đóng form sau khi toggle
+            SafeBeginInvoke((MethodInvoker)(() =>
+            {
+                try { this.Close(); } catch { }
+            }));
         }
 
         private async void Clicks(object sender, EventArgs e)

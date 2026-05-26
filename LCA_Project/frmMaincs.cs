@@ -95,7 +95,7 @@ namespace LCA_Project
         private void CamOnline1()
         {
             cam1 = new CameraAS("192.168.0.77", 7890);
-            cam1.Connect();
+            //cam1.Connect();
             cam1._send += SendDataToPLC;
             cam1._StatusJob += ChangeJob;
         }
@@ -109,7 +109,7 @@ namespace LCA_Project
         private void CamOnline2()
         {
             cam2 = new CameraAS("192.168.0.78", 7890);
-            cam2.Connect();
+            //cam2.Connect();
             cam2._send += SendDataToPLC;
             cam2._StatusJob += ChangeJob;
         }

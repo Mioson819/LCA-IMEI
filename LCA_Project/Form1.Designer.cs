@@ -75,6 +75,7 @@
             this.label39 = new System.Windows.Forms.Label();
             this.pnlNG4 = new Guna.UI2.WinForms.Guna2Panel();
             this.tableLayoutPanel24 = new System.Windows.Forms.TableLayoutPanel();
+            this.ChangeModeTrayInput = new Guna.UI2.WinForms.Guna2GradientButton();
             this.btnControl = new Guna.UI2.WinForms.Guna2GradientButton();
             this.btnSetting = new Guna.UI2.WinForms.Guna2GradientButton();
             this.btnLoto = new Guna.UI2.WinForms.Guna2GradientButton();
@@ -108,7 +109,6 @@
             this.guna2Transition1 = new Guna.UI2.WinForms.Guna2Transition();
             this.guna2DragControl1 = new Guna.UI2.WinForms.Guna2DragControl(this.components);
             this.guna2Elipse1 = new Guna.UI2.WinForms.Guna2Elipse(this.components);
-            this.ChangeModeTrayInput = new Guna.UI2.WinForms.Guna2GradientButton();
             this.tableLayoutPanel1.SuspendLayout();
             this.guna2Panel1.SuspendLayout();
             this.tableLayoutPanel2.SuspendLayout();
@@ -907,6 +907,27 @@
             this.tableLayoutPanel24.TabIndex = 4;
             this.tableLayoutPanel24.Paint += new System.Windows.Forms.PaintEventHandler(this.tableLayoutPanel24_Paint);
             // 
+            // ChangeModeTrayInput
+            // 
+            this.ChangeModeTrayInput.BorderRadius = 4;
+            this.ChangeModeTrayInput.BorderThickness = 1;
+            this.guna2Transition1.SetDecoration(this.ChangeModeTrayInput, Guna.UI2.AnimatorNS.DecorationType.None);
+            this.ChangeModeTrayInput.DisabledState.BorderColor = System.Drawing.Color.DarkGray;
+            this.ChangeModeTrayInput.DisabledState.CustomBorderColor = System.Drawing.Color.DarkGray;
+            this.ChangeModeTrayInput.DisabledState.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(169)))), ((int)(((byte)(169)))), ((int)(((byte)(169)))));
+            this.ChangeModeTrayInput.DisabledState.FillColor2 = System.Drawing.Color.FromArgb(((int)(((byte)(169)))), ((int)(((byte)(169)))), ((int)(((byte)(169)))));
+            this.ChangeModeTrayInput.DisabledState.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(141)))), ((int)(((byte)(141)))), ((int)(((byte)(141)))));
+            this.ChangeModeTrayInput.FillColor = System.Drawing.Color.Gray;
+            this.ChangeModeTrayInput.FillColor2 = System.Drawing.Color.White;
+            this.ChangeModeTrayInput.Font = new System.Drawing.Font("Segoe UI", 8.25F, System.Drawing.FontStyle.Bold);
+            this.ChangeModeTrayInput.ForeColor = System.Drawing.Color.Black;
+            this.ChangeModeTrayInput.Location = new System.Drawing.Point(3, 375);
+            this.ChangeModeTrayInput.Name = "ChangeModeTrayInput";
+            this.ChangeModeTrayInput.Size = new System.Drawing.Size(78, 56);
+            this.ChangeModeTrayInput.TabIndex = 19;
+            this.ChangeModeTrayInput.Text = "Change Mode Tray";
+            this.ChangeModeTrayInput.Click += new System.EventHandler(this.ChangeModeTrayInput_Click);
+            // 
             // btnControl
             // 
             this.btnControl.BorderRadius = 4;
@@ -1484,26 +1505,6 @@
             // guna2Elipse1
             // 
             this.guna2Elipse1.TargetControl = this;
-            // 
-            // ChangeModeTrayInput
-            // 
-            this.ChangeModeTrayInput.BorderRadius = 4;
-            this.ChangeModeTrayInput.BorderThickness = 1;
-            this.guna2Transition1.SetDecoration(this.ChangeModeTrayInput, Guna.UI2.AnimatorNS.DecorationType.None);
-            this.ChangeModeTrayInput.DisabledState.BorderColor = System.Drawing.Color.DarkGray;
-            this.ChangeModeTrayInput.DisabledState.CustomBorderColor = System.Drawing.Color.DarkGray;
-            this.ChangeModeTrayInput.DisabledState.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(169)))), ((int)(((byte)(169)))), ((int)(((byte)(169)))));
-            this.ChangeModeTrayInput.DisabledState.FillColor2 = System.Drawing.Color.FromArgb(((int)(((byte)(169)))), ((int)(((byte)(169)))), ((int)(((byte)(169)))));
-            this.ChangeModeTrayInput.DisabledState.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(141)))), ((int)(((byte)(141)))), ((int)(((byte)(141)))));
-            this.ChangeModeTrayInput.FillColor = System.Drawing.Color.Gray;
-            this.ChangeModeTrayInput.FillColor2 = System.Drawing.Color.White;
-            this.ChangeModeTrayInput.Font = new System.Drawing.Font("Segoe UI", 8.25F, System.Drawing.FontStyle.Bold);
-            this.ChangeModeTrayInput.ForeColor = System.Drawing.Color.Black;
-            this.ChangeModeTrayInput.Location = new System.Drawing.Point(3, 375);
-            this.ChangeModeTrayInput.Name = "ChangeModeTrayInput";
-            this.ChangeModeTrayInput.Size = new System.Drawing.Size(78, 56);
-            this.ChangeModeTrayInput.TabIndex = 19;
-            this.ChangeModeTrayInput.Text = "Change Mode Tray";
             // 
             // Form1
             // 
