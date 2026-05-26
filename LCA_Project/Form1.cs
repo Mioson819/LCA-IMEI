@@ -25,6 +25,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
 using System.Windows.Forms;
+
 namespace LCA_Project
 {
     public partial class Form1 : System.Windows.Forms.Form
@@ -61,12 +62,14 @@ namespace LCA_Project
         private readonly TimeSpan _bitScanPeriod = TimeSpan.FromSeconds(5);
         private event EventHandler Nodata;
         private CameraAS _cam;
+
         private class LabelMonitor
         {
             public System.Windows.Forms.Label Label { get; set; }
             public string Address { get; set; }
             public int LastValue { get; set; } = int.MinValue;
         }
+
         private class BitMonitor
         {
             public Guna2Button Button { get; set; }
@@ -74,6 +77,7 @@ namespace LCA_Project
             public int Bit { get; set; }
             public bool State { get; set; } = false;
         }
+
         public delegate void SendNameStation(string s);
         public event SendNameStation _sendName;
         private string nameStation;
@@ -108,6 +112,7 @@ namespace LCA_Project
         private int CountDelete = 0;
         private string folder { get; set; }
         public LogFileWatcher logWatcher;
+
         private readonly Dictionary<string, (string sendDm, string statusTm, string alarmTm, string triggerMrBase)> _addr
             = new Dictionary<string, (string sendDm, string statusTm, string alarmTm, string triggerMrBase)>(StringComparer.OrdinalIgnoreCase)
             {
@@ -116,6 +121,7 @@ namespace LCA_Project
                 { "Station3", ("DM2320", "TM83", "TM76", "MR10400") },
                 { "Station4", ("DM1520", "TM81", "TM72", "MR10400") },
             };
+
         private readonly Dictionary<ushort, string> _alarm = new Dictionary<ushort, string>
         {
             { 1,  "Lỗi Trục X" },
@@ -156,23 +162,24 @@ namespace LCA_Project
             { 36, "Vaccum Fail" },
             { 40, "No Data. Kiểm tra đường dẫn log hoặc phần mềm Handler/Test của máy Tester." },
             { 41, "Time Out Camera , Hãy Init và chạy lại " },
-            {42, "Timeout không mở được lắp socket, kiểm tra lắp socket hoặc điểm teach F" },
-            {43, "Cửa Đang Mở,Bạn Có Muốn Chạy Tiếp Không" },
-            {44, "Chart đang OFF" },
-            {45, "Thiết Bị Đang Sửa Chữa" },
-            {50, "Axis Alarm: Limit+ X" },
-            {51, "Axis Alarm: Limit- X" },
-            {52, "Axis Alarm: Limit- Y" },
-            {53, "Axis Alarm: Limit- Z" },
-            {54, "Kênh hàng trong Socket" },
-            {55, "PC không kết nối với Handler máy Test, kiểm tra dây kết nối " },
-            {56, "Sensor Cyclinder IN Socket Off" },
-            {57, "Sensor Cyclinder OUT Socket Off" },
-            {58, "Sensor Cyclinder UP Socket Off" },
-            {59, "Sensor Cyclinder DOWN Socket Off" },
-            {60, "Sensor Cyclinder UnClip Socket Off" },
-            {61, "Sensor Cyclinder Clip Socket Off" },
+            { 42, "Timeout không mở được lắp socket, kiểm tra lắp socket hoặc điểm teach F" },
+            { 43, "Cửa Đang Mở,Bạn Có Muốn Chạy Tiếp Không" },
+            { 44, "Chart đang OFF" },
+            { 45, "Thiết Bị Đang Sửa Chữa" },
+            { 50, "Axis Alarm: Limit+ X" },
+            { 51, "Axis Alarm: Limit- X" },
+            { 52, "Axis Alarm: Limit- Y" },
+            { 53, "Axis Alarm: Limit- Z" },
+            { 54, "Kênh hàng trong Socket" },
+            { 55, "PC không kết nối với Handler máy Test, kiểm tra dây kết nối " },
+            { 56, "Sensor Cyclinder IN Socket Off" },
+            { 57, "Sensor Cyclinder OUT Socket Off" },
+            { 58, "Sensor Cyclinder UP Socket Off" },
+            { 59, "Sensor Cyclinder DOWN Socket Off" },
+            { 60, "Sensor Cyclinder UnClip Socket Off" },
+            { 61, "Sensor Cyclinder Clip Socket Off" },
         };
+
         private readonly Dictionary<ushort, string> _Status = new Dictionary<ushort, string>
         {
             { 0, "Yêu Cầu Về Gốc" },
@@ -186,6 +193,7 @@ namespace LCA_Project
             { 8, "Đang Chạy Tự Động" },
             { 9, "Vô Hiệu Hóa" }
         };
+
         public string Nametation
         {
             get { return _NameStation; }
@@ -198,6 +206,7 @@ namespace LCA_Project
                 else _NameStation = value;
             }
         }
+
         public Form1(KeyenceHostLinkTcpClient plc, string name, int triggerIndex, string NameModel, int nx, int ny, int nYNG4, CameraAS cam)
         {
             InitializeComponent();
@@ -233,7 +242,36 @@ namespace LCA_Project
             if (!string.IsNullOrWhiteSpace(OldIdleTime) && TimeSpan.TryParse(OldIdleTime, out it)) _OldIdleTime = it;
             StartTrigger(triggerIndex);
             this._cam = cam;
+
+            // Đăng ký FormClosing để dừng tất cả background task khi đóng form
+            this.FormClosing += Form1_FormClosing;
         }
+
+        // ====== SAFE INVOKE HELPERS ======
+        // Dùng thay cho this.Invoke(...) — an toàn khi form đang đóng
+        private void SafeInvoke(MethodInvoker action)
+        {
+            if (this.IsDisposed || !this.IsHandleCreated) return;
+            try
+            {
+                this.Invoke(action);
+            }
+            catch (ObjectDisposedException) { }
+            catch (InvalidOperationException) { }
+        }
+
+        // Dùng thay cho this.BeginInvoke(...) — an toàn khi form đang đóng
+        private void SafeBeginInvoke(MethodInvoker action)
+        {
+            if (this.IsDisposed || !this.IsHandleCreated) return;
+            try
+            {
+                this.BeginInvoke(action);
+            }
+            catch (ObjectDisposedException) { }
+            catch (InvalidOperationException) { }
+        }
+
         // ====== Helpers ======
         private static bool TryParseTag(string tag, out string word, out int bit)
         {
@@ -245,6 +283,7 @@ namespace LCA_Project
             word = parts[0];
             return true;
         }
+
         private async Task<bool> TrySetBitWithVerify(string word, int bit, int timeoutMs = 3000, int stepMs = 100)
         {
             Stopwatch sw = Stopwatch.StartNew();
@@ -265,6 +304,7 @@ namespace LCA_Project
             }
             return false;
         }
+
         private async Task<bool> TryResetBitWithVerify(string word, int bit, int timeoutMs = 3000, int stepMs = 100)
         {
             Stopwatch sw = Stopwatch.StartNew();
@@ -285,11 +325,13 @@ namespace LCA_Project
             }
             return false;
         }
+
         public void UpdateModel(Dictionary<string, string> s)
         {
             var value = s.Where(name => name.Key == this.nameStation).FirstOrDefault().Value;
             lblModel.Text = value;
         }
+
         public void StartRead(Dictionary<string, string> stationToFolder)
         {
             try
@@ -303,8 +345,6 @@ namespace LCA_Project
                 string value = stationToFolder.Where(p => p.Key == this.nameStation).FirstOrDefault().Value;
                 string serverFolder = value;
                 if (string.IsNullOrWhiteSpace(serverFolder)) return;
-                //string filePattern = DateTime.Now.ToString("yyyy") + "*.log"; 
-                //string filePattern = "P1" + "*.txt";
                 string tempPath1;
                 switch (this.nameStation)
                 {
@@ -327,6 +367,7 @@ namespace LCA_Project
                 LogProgram.WriteLog("StartRead error: " + ex, this.Nametation);
             }
         }
+
         public void OnMess(object sender, EventArgs e)
         {
             if (logWatcher != null)
@@ -357,8 +398,12 @@ namespace LCA_Project
                 }
             }
         }
+
         private void HandleLogLine(ushort value)
         {
+            // Nếu form đã đóng thì bỏ qua, không BeginInvoke nữa
+            if (_cts.IsCancellationRequested) return;
+
             Interlocked.Increment(ref _Input);
             (string sendDm, string statusTm, string alarmTm, string triggerMrBase) map;
             if (!_addr.TryGetValue(nameStation, out map)) return;
@@ -370,7 +415,9 @@ namespace LCA_Project
             {
                 LogProgram.WriteLog("PLC write UInt16 " + map.sendDm + " failed: " + ex, this.Nametation);
             }
-            this.BeginInvoke((MethodInvoker)(() =>
+
+            // ← SafeBeginInvoke thay cho this.BeginInvoke
+            SafeBeginInvoke((MethodInvoker)(() =>
             {
                 lblResultTester.Text = value.ToString();
                 if (value == 0)
@@ -379,7 +426,6 @@ namespace LCA_Project
                     lblStatus2.Text = "Pass";
                     lblStatus2.ForeColor = System.Drawing.Color.Green;
                     OK++;
-                    // cập nhật ngay like code cũ
                     NberPrdOKs.Text = _OK.ToString();
                     DatabaseControllers.Instance.InsertDataPortSummaOK(this.Nametation, OK);
                     LogProgram.WriteLog(this.nameStation + " PC send Pass : " + value, this.Nametation);
@@ -390,17 +436,17 @@ namespace LCA_Project
                     lblStatus2.ForeColor = System.Drawing.Color.Red;
                     Interlocked.Increment(ref _NG);
                     NG++;
-                    // cập nhật ngay like code cũ
                     NberPrdNGs.Text = _NG.ToString();
                     DatabaseControllers.Instance.InsertDataPortSummaNG(this.Nametation, NG);
                     LogProgram.WriteLog(this.nameStation + " PC send NG : " + value, this.Nametation);
                 }
-                // cập nhật Input realtime nếu muốn
                 NberPrdIns.Text = _Input.ToString();
             }));
+
             CountDelete++;
             this.plc.SetBitInWord(this._ReStartNoData.Split('.')[0], int.Parse(this._ReStartNoData.Split('.')[1]));
         }
+
         private void ReadStatus()
         {
             (string sendDm, string statusTm, string alarmTm, string triggerMrBase) map;
@@ -415,7 +461,8 @@ namespace LCA_Project
                 if (s != _beforStatus)
                 {
                     _beforStatus = s;
-                    this.BeginInvoke((MethodInvoker)(() => { lblStatus.Text = s; }));
+                    // ← SafeBeginInvoke thay cho this.BeginInvoke
+                    SafeBeginInvoke((MethodInvoker)(() => { lblStatus.Text = s; }));
                 }
                 lock (_timeLock)
                 {
@@ -437,12 +484,6 @@ namespace LCA_Project
                         if (ErrTime1.IsRunning) ErrTime1.Stop();
                         if (!IdleTime1.IsRunning) IdleTime1.Start();
                     }
-                    //else
-                    //{
-                    //    if (RunTime1.IsRunning) RunTime1.Stop();
-                    //    if (ErrTime1.IsRunning) ErrTime1.Stop();
-                    //    if (IdleTime1.IsRunning) IdleTime1.Stop();
-                    //}
                 }
                 _lastStatusCodeSnapshot = code;
             }
@@ -451,12 +492,15 @@ namespace LCA_Project
                 LogProgram.WriteLog("ReadStatus error: " + ex, this.Nametation);
             }
         }
+
         private void ReadAlarm()
         {
             (string sendDm, string statusTm, string alarmTm, string triggerMrBase) map;
             if (!_addr.TryGetValue(nameStation, out map)) return;
             Task.Run(() =>
             {
+                // Nếu form đang đóng thì không làm gì cả
+                if (_cts.IsCancellationRequested) return;
                 try
                 {
                     ushort value = plc.ReadUInt16(map.alarmTm);
@@ -466,7 +510,8 @@ namespace LCA_Project
                         {
                             if (_frmAlarm != null)
                             {
-                                this.BeginInvoke((MethodInvoker)(() => { _frmAlarm.Close(); }));
+                                // ← SafeBeginInvoke thay cho this.BeginInvoke
+                                SafeBeginInvoke((MethodInvoker)(() => { _frmAlarm.Close(); }));
                             }
                         }
                         catch (Exception ex)
@@ -480,7 +525,7 @@ namespace LCA_Project
                     }
                     string s;
                     if (!_alarm.TryGetValue(value, out s)) return;
-                    if (value == 31 /*&& _prevAlarmCode != 31 &&*/ || value == 32 || value == 33 || value == 34 || value == 35 && statusResult)
+                    if (value == 31 || value == 32 || value == 33 || value == 34 || value == 35 && statusResult)
                     {
                         oldResultNG123 = _Unload != null ? _Unload.OldResult() : null;
                         oldResultNG4 = _NG4 != null ? _NG4.OldResult() : null;
@@ -494,7 +539,8 @@ namespace LCA_Project
                     if (s != _beforAlarmText)
                     {
                         _beforAlarmText = s;
-                        this.BeginInvoke((MethodInvoker)(() =>
+                        // ← SafeBeginInvoke thay cho this.BeginInvoke
+                        SafeBeginInvoke((MethodInvoker)(() =>
                         {
                             _frmAlarm = new frmAlarm(s, this.plc, this.nameStation);
                             _frmAlarm.Location = new Point(this.Location.X, this.Location.Y);
@@ -510,13 +556,27 @@ namespace LCA_Project
                 }
             });
         }
+
         // ====== Timers ======
         private void TimerUPH_Elapsed(object sender, ElapsedEventArgs e)
         {
         }
+
         private async void Timer_Elapsed(object sender, ElapsedEventArgs e)
         {
-            if (!await _pollGate.WaitAsync(0)) return;
+            // Nếu form đã cancel (đang đóng) thì bỏ qua tick này
+            if (_cts.IsCancellationRequested) return;
+
+            // Bọc WaitAsync trong try-catch vì semaphore có thể đã bị Dispose
+            // do race condition giữa Timer callback và FormClosing
+            bool acquired;
+            try
+            {
+                acquired = await _pollGate.WaitAsync(0);
+            }
+            catch (ObjectDisposedException) { return; }
+
+            if (!acquired) return;
             try
             {
                 ReadAlarm();
@@ -531,7 +591,9 @@ namespace LCA_Project
                     err = (!string.IsNullOrEmpty(OldErrTime)) ? (_OldErrTime + ErrTime1.Elapsed) : ErrTime1.Elapsed;
                     idle = (!string.IsNullOrEmpty(OldIdleTime)) ? (_OldIdleTime + IdleTime1.Elapsed) : IdleTime1.Elapsed;
                 }
-                this.Invoke((MethodInvoker)(() =>
+
+                // ← SafeInvoke thay cho this.Invoke — tránh lỗi khi form đóng
+                SafeInvoke((MethodInvoker)(() =>
                 {
                     NberPrdNGs.Text = _NG.ToString();
                     NberPrdOKs.Text = _OK.ToString();
@@ -551,13 +613,20 @@ namespace LCA_Project
             }
             finally
             {
-                DatabaseControllers.Instance.UpdateCurrentValue(this.Nametation, _Input, _OK, _NG);
-                DatabaseControllers.Instance.InsertDataPortSummaNG(this.Nametation, NG);
-                DatabaseControllers.Instance.InsertDataPortSummaOK(this.Nametation, OK);
-                DatabaseControllers.Instance.InsertDataPortSummaInput(this.Nametation, DatabaseControllers.Instance.SelectDataPortSummaNG(this.Nametation) + DatabaseControllers.Instance.SelectDataPortSummaOk(this.Nametation));
-                _pollGate.Release();
+                try
+                {
+                    DatabaseControllers.Instance.UpdateCurrentValue(this.Nametation, _Input, _OK, _NG);
+                    DatabaseControllers.Instance.InsertDataPortSummaNG(this.Nametation, NG);
+                    DatabaseControllers.Instance.InsertDataPortSummaOK(this.Nametation, OK);
+                    DatabaseControllers.Instance.InsertDataPortSummaInput(this.Nametation,
+                        DatabaseControllers.Instance.SelectDataPortSummaNG(this.Nametation) +
+                        DatabaseControllers.Instance.SelectDataPortSummaOk(this.Nametation));
+                }
+                catch { }
+                try { _pollGate.Release(); } catch (ObjectDisposedException) { }
             }
         }
+
         // ====== Load ======
         private void Form1_Load(object sender, EventArgs e)
         {
@@ -569,23 +638,14 @@ namespace LCA_Project
             timer.Elapsed += Timer_Elapsed;
             timer.AutoReset = true;
             timer.Start();
-            //timerUPH = new System.Timers.Timer(3600000);
-            //timerUPH.Elapsed += TimerUPH_Elapsed;
-            //timerUPH.AutoReset = true;
-            //timerUPH.Start();
             lblStation.Text = this.Nametation;
-            if (frmMaincs.conimiei)
+            if (!frmMaincs.conimiei)
             {
-                label37.Text = "PASS";
-                label37.BackColor = System.Drawing.Color.Lime;
-                ReadDataforUnloadImei();
-            }
-            else
-            {
-                ReadDataforUnload();
                 ModifyWork2.Visible = false;
+                ChangeModeTrayInput.Visible = false;
             }
         }
+
         private void AutoRead()
         {
             type = typeof(DataforInputResults);
@@ -601,7 +661,7 @@ namespace LCA_Project
             PropertyInfo pModify = type.GetProperty("ModifyWork", BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
             object data3 = DatabaseControllers.Instance.GetDataByInputResults(this.nameStation);
             _ModifyWork = pModify != null ? (pModify.GetValue(data3) + "").Trim() : null;
-            //ModifyWork 2
+            // ModifyWork 2
             PropertyInfo pModify2 = type.GetProperty("ModifyWork2", BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
             object data33 = DatabaseControllers.Instance.GetDataByInputResults(this.nameStation);
             _ModifyWork2 = pModify2 != null ? (pModify2.GetValue(data33) + "").Trim() : null;
@@ -664,8 +724,12 @@ namespace LCA_Project
                     if (dataObj == null) continue;
                     string tag = (prop.GetValue(dataObj) + "").Trim();
                     if (string.IsNullOrEmpty(tag)) continue;
-                    this.BeginInvoke(new Action(() => { buttonGradion.Tag = tag; }));
-                    if (nameUpper.Contains("RESETDATA") || nameUpper.Contains("SKIP") || nameUpper.Contains("RETRI") || nameUpper.IndexOf("Reset", StringComparison.OrdinalIgnoreCase) >= 0 || nameUpper.IndexOf("Set", StringComparison.OrdinalIgnoreCase) >= 0 || nameUpper.IndexOf("EndAuto", StringComparison.OrdinalIgnoreCase) >= 0)
+                    // ← SafeBeginInvoke thay cho this.BeginInvoke
+                    SafeBeginInvoke((MethodInvoker)(() => { buttonGradion.Tag = tag; }));
+                    if (nameUpper.Contains("RESETDATA") || nameUpper.Contains("SKIP") || nameUpper.Contains("RETRI")
+                        || nameUpper.IndexOf("Reset", StringComparison.OrdinalIgnoreCase) >= 0
+                        || nameUpper.IndexOf("Set", StringComparison.OrdinalIgnoreCase) >= 0
+                        || nameUpper.IndexOf("EndAuto", StringComparison.OrdinalIgnoreCase) >= 0)
                     {
                         buttonGradion.MouseDown += MouseDowns;
                         buttonGradion.MouseUp += MouseUps;
@@ -697,6 +761,7 @@ namespace LCA_Project
                             swLabel.Restart();
                             foreach (LabelMonitor m in _labelMonitors)
                             {
+                                if (_cts.IsCancellationRequested) break;
                                 try
                                 {
                                     int valueNow = plc.ReadInt32(m.Address);
@@ -704,7 +769,8 @@ namespace LCA_Project
                                     {
                                         m.LastValue = valueNow;
                                         string text = ((double)valueNow).ToString();
-                                        this.BeginInvoke((MethodInvoker)(() => m.Label.Text = text));
+                                        // ← SafeBeginInvoke thay cho this.BeginInvoke
+                                        SafeBeginInvoke((MethodInvoker)(() => m.Label.Text = text));
                                     }
                                 }
                                 catch (Exception ex)
@@ -718,13 +784,15 @@ namespace LCA_Project
                             swBit.Restart();
                             foreach (BitMonitor b in _bitMonitors)
                             {
+                                if (_cts.IsCancellationRequested) break;
                                 try
                                 {
                                     bool now = plc.ReadBitFromWord(b.Word, b.Bit);
                                     if (now != b.State)
                                     {
                                         b.State = now;
-                                        this.BeginInvoke((MethodInvoker)(() =>
+                                        // ← SafeBeginInvoke thay cho this.BeginInvoke
+                                        SafeBeginInvoke((MethodInvoker)(() =>
                                         {
                                             b.Button.FillColor = now
                                                 ? System.Drawing.Color.FromArgb(192, 255, 192)
@@ -747,6 +815,7 @@ namespace LCA_Project
                 }
             }, _cts.Token);
         }
+
         // ====== Control trees ======
         public IEnumerable<System.Windows.Forms.Control> GetAllControls(System.Windows.Forms.Control parent)
         {
@@ -757,17 +826,19 @@ namespace LCA_Project
                     yield return child;
             }
         }
+
         private void NG999(Object sender, EventArgs e)
         {
             lblResultTester.Text = "999";
             Interlocked.Increment(ref _Input);
             Interlocked.Increment(ref _NG);
         }
+
         // ====== Data Grids ======
         private void ReadDataforUnload()
         {
             _Unload = new ucButtonDisplayGrid<DataforUnload>(this.nX, this.ny, this.plc,
-                DatabaseControllers.Instance.GetDataForUnload(this.nameStation), this.nameStation, "9000","UnLoad");
+                DatabaseControllers.Instance.GetDataForUnload(this.nameStation), this.nameStation, "9000", "UnLoad");
             pnlUnload.Controls.Clear();
             pnlUnload.Controls.Add(_Unload);
             _Unload.NG999 -= NG999;
@@ -776,6 +847,7 @@ namespace LCA_Project
             _Unload._takPointLoad += _Load.UpdateLabel;
             _Unload.CheckDelete = () => { DeleteFile(); };
         }
+
         private void ReadDataforUnloadImei()
         {
             _Load2 = new ucButtonDisplayGrid<DataforloadImei>(this.nX, this.ny, this.plc,
@@ -789,10 +861,11 @@ namespace LCA_Project
             }
             _Load2.CheckDelete = () => { DeleteFile(); };
         }
+
         private void ReadDataforLoad()
         {
             _Load = new ucButtonDisplayGrid<Dataforload>(this.nX, this.ny, this.plc,
-                DatabaseControllers.Instance.GetDataload(this.nameStation), this.nameStation, _ModifyWork,"Load");
+                DatabaseControllers.Instance.GetDataload(this.nameStation), this.nameStation, _ModifyWork, "Load");
             pnlLoad.Controls.Clear();
             pnlLoad.Controls.Add(_Load);
             _Load.CheckDelete = () =>
@@ -800,10 +873,11 @@ namespace LCA_Project
                 DeleteFile();
             };
         }
+
         private void ReadDataForNG4()
         {
             _NG4 = new ucButtonDisplayGrid<DataforNG4>(2, nYNG4, this.plc,
-                DatabaseControllers.Instance.GetDataNG4(this.nameStation), this.nameStation, "9000","UnLoad");
+                DatabaseControllers.Instance.GetDataNG4(this.nameStation), this.nameStation, "9000", "UnLoad");
             pnlNG4.Controls.Clear();
             pnlNG4.Controls.Add(_NG4);
             _NG4.NG999 -= NG999;
@@ -813,15 +887,25 @@ namespace LCA_Project
             _NG4._takPointLoad -= _Load.UpdateLabel;
             _NG4._takPointLoad += _Load.UpdateLabel;
         }
-        // ====== Form closing ======
+
+        // ====== Form Closing — dừng tất cả background task trước khi form bị hủy ======
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
             try
             {
-                if (timer != null) timer.Stop();
-                if (timerUPH != null) timerUPH.Stop();
+                // 1. Dừng timer TRƯỚC TIÊN và hủy đăng ký event
+                //    để không có tick mới nào được phát sinh
+                if (timer != null)
+                {
+                    timer.Stop();
+                    timer.Elapsed -= Timer_Elapsed;
+                }
+                if (timerUPH != null) { timerUPH.Stop(); }
+
+                // 2. Cancel token để tất cả Task/loop thoát
                 _cts.Cancel();
-                // Dừng đồng hồ trong lock trước khi lưu
+
+                // 3. Dừng và lưu thời gian
                 lock (_timeLock)
                 {
                     if (RunTime1.IsRunning) RunTime1.Stop();
@@ -834,7 +918,9 @@ namespace LCA_Project
                 DatabaseControllers.Instance.UpdateCurrentValue(this.Nametation, _Input, _OK, _NG);
                 DatabaseControllers.Instance.InsertDataPortSummaNG(this.Nametation, NG);
                 DatabaseControllers.Instance.InsertDataPortSummaOK(this.Nametation, OK);
-                DatabaseControllers.Instance.InsertDataPortSummaInput(this.Nametation, DatabaseControllers.Instance.SelectDataPortSummaNG(this.Nametation) + DatabaseControllers.Instance.SelectDataPortSummaOk(this.Nametation));
+                DatabaseControllers.Instance.InsertDataPortSummaInput(this.Nametation,
+                    DatabaseControllers.Instance.SelectDataPortSummaNG(this.Nametation) +
+                    DatabaseControllers.Instance.SelectDataPortSummaOk(this.Nametation));
             }
             catch (Exception ex)
             {
@@ -842,14 +928,17 @@ namespace LCA_Project
             }
             finally
             {
-                try { if (timer != null) timer.Dispose(); } catch { }
-                try { if (timerUPH != null) timerUPH.Dispose(); } catch { }
-                try { if (logWatcher != null) logWatcher.Dispose(); } catch { }
+                // 4. Giải phóng tài nguyên — bọc từng cái riêng để cái này lỗi không ảnh hưởng cái kia
+                try { timer?.Dispose(); } catch { }
+                try { timerUPH?.Dispose(); } catch { }
+                try { logWatcher?.Dispose(); } catch { }
                 try { _pollGate.Dispose(); } catch { }
                 try { _pressGate.Dispose(); } catch { }
                 try { _batchGate.Dispose(); } catch { }
+                try { _cts.Dispose(); } catch { }
             }
         }
+
         public void StopRead(object sender, EventArgs e)
         {
             try
@@ -859,17 +948,20 @@ namespace LCA_Project
             }
             catch { }
         }
+
         // ====== Buttons / Events ======
         private void guna2ImageButton1_Click(object sender, EventArgs e)
         {
             frmControllersMain = new frmControllers();
             frmControllersMain.Show();
         }
+
         private void guna2ImageButton3_Click(object sender, EventArgs e)
         {
             frmResources = new frmResources();
             frmResources.Show();
         }
+
         private void guna2GradientButton14_Click(object sender, EventArgs e)
         {
             var frm = new frmLotoImei(() =>
@@ -879,10 +971,12 @@ namespace LCA_Project
             });
             frm.Show();
         }
+
         private void ResetWork_Click(object sender, EventArgs e)
         {
             if (_Load != null) _Load.ResetLoad();
         }
+
         private async void MouseUps(object sender, MouseEventArgs e)
         {
             Guna2GradientButton btn = sender as Guna2GradientButton;
@@ -891,6 +985,7 @@ namespace LCA_Project
             await TryResetBitWithVerify(word, bit);
             btn.FillColor = System.Drawing.Color.Gray;
         }
+
         private async void MouseDowns(object sender, MouseEventArgs e)
         {
             Guna2GradientButton btn = sender as Guna2GradientButton;
@@ -899,26 +994,32 @@ namespace LCA_Project
             await TrySetBitWithVerify(word, bit);
             btn.FillColor = System.Drawing.Color.Green;
         }
-        private void SetCompWork_Click(object sender, EventArgs e) 
-        { 
-            if (_Load != null) _Load.SetComp(); 
-        }
-        private void SetEmptyWork_Click(object sender, EventArgs e)
-        { 
-            if (_Load != null) _Load.SetEmptyLoad(); 
-        }
-        private void ResetCompelete_Click(object sender, EventArgs e) 
+
+        private void SetCompWork_Click(object sender, EventArgs e)
         {
-            if (_Unload != null) _Unload.ResetUnLoad(); 
+            if (_Load != null) _Load.SetComp();
         }
-        private void SetCompCompelete_Click(object sender, EventArgs e) 
-        { 
-            if (_Unload != null) _Unload.SetComp(); 
+
+        private void SetEmptyWork_Click(object sender, EventArgs e)
+        {
+            if (_Load != null) _Load.SetEmptyLoad();
         }
+
+        private void ResetCompelete_Click(object sender, EventArgs e)
+        {
+            if (_Unload != null) _Unload.ResetUnLoad();
+        }
+
+        private void SetCompCompelete_Click(object sender, EventArgs e)
+        {
+            if (_Unload != null) _Unload.SetComp();
+        }
+
         private void SetEmptyCompelete_Click(object sender, EventArgs e)
-        { 
+        {
             if (_Unload != null) _Unload.SetEmptyUnLoad();
         }
+
         private void ModifyWork_Click(object sender, EventArgs e)
         {
             if (_Load != null)
@@ -938,6 +1039,7 @@ namespace LCA_Project
                 }
             }
         }
+
         private void ModifyWork2_Click(object sender, EventArgs e)
         {
             if (_Load2 != null)
@@ -957,21 +1059,25 @@ namespace LCA_Project
                 }
             }
         }
+
         private void guna2GradientButton1_Click(object sender, EventArgs e)
         {
             frmTeachingCamera = new frmTeachingCamera();
             frmTeachingCamera.Show();
         }
+
         private void Guna2GradientButton21_Click(object sender, EventArgs e, int i)
         {
             _frmCurPos = new frmCurPos(this.nameStation, this.plc);
             _frmCurPos.Show();
         }
+
         private void guna2GradientButton21_Click(object sender, EventArgs e)
         {
             _frmCurPos = new frmCurPos(this.nameStation, this.plc);
             _frmCurPos.Show();
         }
+
         private async void Clicks(object sender, EventArgs e)
         {
             Guna2GradientButton btn = sender as Guna2GradientButton;
@@ -983,14 +1089,17 @@ namespace LCA_Project
             if (turningOn)
             {
                 if (await TrySetBitWithVerify(word, bit))
-                    this.BeginInvoke((MethodInvoker)(() => btn.FillColor = System.Drawing.Color.Green));
+                    // ← SafeBeginInvoke thay cho this.BeginInvoke
+                    SafeBeginInvoke((MethodInvoker)(() => btn.FillColor = System.Drawing.Color.Green));
             }
             else
             {
                 if (await TryResetBitWithVerify(word, bit))
-                    this.BeginInvoke((MethodInvoker)(() => btn.FillColor = System.Drawing.Color.Gray));
+                    // ← SafeBeginInvoke thay cho this.BeginInvoke
+                    SafeBeginInvoke((MethodInvoker)(() => btn.FillColor = System.Drawing.Color.Gray));
             }
         }
+
         private void guna2GradientButton9_Click(object sender, EventArgs e)
         {
             DatabaseControllers.Instance.DeleteCurrentValue(this.Nametation);
@@ -1009,18 +1118,9 @@ namespace LCA_Project
             RunTime1.Reset();
             ErrTime1.Reset();
             IdleTime1.Reset();
-            if (runTime)
-            {
-                RunTime1.Start();
-            }
-            if (errTime)
-            {
-                ErrTime1.Start();
-            }
-            if (idleIime)
-            {
-                IdleTime1.Start();
-            }
+            if (runTime) RunTime1.Start();
+            if (errTime) ErrTime1.Start();
+            if (idleIime) IdleTime1.Start();
             string[] value = DatabaseControllers.Instance.GetCurrentValue(this.Nametation);
             if (value != null)
             {
@@ -1029,10 +1129,12 @@ namespace LCA_Project
                 _NG = int.Parse(value[2]);
             }
         }
+
         public void Retrig()
         {
             if (_sendName != null) _sendName.Invoke(nameStation);
         }
+
         private void btnLoto_Click(object sender, EventArgs e)
         {
             frmLoto _Loto = new frmLoto(this.plc, this._Loto);
@@ -1040,17 +1142,21 @@ namespace LCA_Project
             _Loto.Show();
             _Loto.BringToFront();
         }
+
         private void tableLayoutPanel24_Paint(object sender, PaintEventArgs e)
         {
         }
+
         private void Retrig1_Click(object sender, EventArgs e)
         {
             if (_sendName != null) _sendName.Invoke(nameStation);
         }
+
         public void guna2ControlBox1_Click(object sender, EventArgs e)
         {
             try { this.Dispose(); this.Close(); } catch { }
         }
+
         private void btnOldResult_Click(object sender, EventArgs e)
         {
             _frmOldResult = new frmOldResult(this.nX, this.ny, this.nYNG4, this.nameStation);
@@ -1062,6 +1168,7 @@ namespace LCA_Project
                 _frmOldResult.Show();
             }
         }
+
         // ====== Reset theo bit ======
         public void Rset(string s) // Reset Tray Load
         {
@@ -1091,6 +1198,7 @@ namespace LCA_Project
                 }
             });
         }
+
         public void RsetNG4(string s) // Reset Tray NG4
         {
             if (string.IsNullOrWhiteSpace(s)) return;
@@ -1118,6 +1226,7 @@ namespace LCA_Project
                 }
             });
         }
+
         public void RsetNG(string s) // Reset Tray NG (Unload)
         {
             if (string.IsNullOrWhiteSpace(s)) return;
@@ -1145,6 +1254,7 @@ namespace LCA_Project
                 }
             });
         }
+
         // ====== Trigger ======
         private void StartTrigger(int s)
         {
@@ -1172,50 +1282,37 @@ namespace LCA_Project
                 }
             }, _cts.Token);
         }
+
         public void Reset(object sender, EventArgs e)
         {
             timer.Stop();
             DatabaseControllers.Instance.DeleteNG(this.Nametation);
             NG = DatabaseControllers.Instance.SelectDataPortSummaNG(this.Nametation);
             OK = DatabaseControllers.Instance.SelectDataPortSummaOk(this.Nametation);
-            // _pollGate.Release();
             timer.Start();
         }
+
         public void DeleteFile()
         {
             if (CountDelete >= 3)
             {
                 try
                 {
-                    //DirectoryInfo dir = new DirectoryInfo(file);
-                    //FileInfo value = dir.GetFiles(this.filePattern).OrderByDescending(f => f.LastWriteTime).FirstOrDefault();
-                    //if (value == null)
-                    //{
-                    //    MessageBox.Show("Không Tìm Thấy File");
-                    //    return;
-                    //}
                     CountDelete = 0;
                     Nodata?.Invoke(this, new EventArgs());
-                    //string file;
                     switch (this.nameStation)
                     {
                         case "Station1": File.WriteAllText(@"C:\LOGLCA\log1.txt", ""); break;
                         case "Station2": File.WriteAllText(@"C:\LOGLCA\log2.txt", ""); break;
                         case "Station3": File.WriteAllText(@"C:\LOGLCA\log3.txt", ""); break;
                         case "Station4": File.WriteAllText(@"C:\LOGLCA\log4.txt", ""); break;
-                            //  default: File.Delete(@"C:\LOGLCA\log.txt"); break;
                     }
                 }
-                catch (IOException ex)
-                {
-                    //  MessageBox.Show("Không Thể Xóa Do File Đang Được Truy Cập");
-                }
-                catch (Exception e)
-                {
-                    //  MessageBox.Show($"ERROR : {e}");
-                }
+                catch (IOException) { }
+                catch (Exception) { }
             }
         }
+
         private void btnSetting_Click(object sender, EventArgs e)
         {
             var frm = new frmLotoImei(() =>
@@ -1225,6 +1322,7 @@ namespace LCA_Project
             });
             frm.Show();
         }
+
         private void btnControl_Click(object sender, EventArgs e)
         {
             frmControl _frmControl = new frmControl(this.nameStation, this.plc);

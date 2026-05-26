@@ -1,7 +1,4 @@
-﻿using DocumentFormat.OpenXml.Drawing;
-using DocumentFormat.OpenXml.Vml.Spreadsheet;
-using Guna.UI2.WinForms;
-using LCA_Project.Database;
+﻿using LCA_Project.Database;
 using LCA_Project.Form.Devices.Controllers;
 using LCA_Project.Form.frmAlarm;
 using LCA_Project.Form.Signal;
@@ -13,20 +10,11 @@ using LCA_Samsung.Process;
 using Project_Visionpro.Program.PLC;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Data;
-using System.Data.Odbc;
-using System.Diagnostics;
-using System.Drawing;
 using System.Linq;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
-using System.Windows;
 using System.Windows.Forms;
-using System.Xml.Linq;
-using MessageBox = System.Windows.MessageBox;
 namespace LCA_Project
 {
     public partial class frmMaincs : System.Windows.Forms.Form
@@ -88,13 +76,13 @@ namespace LCA_Project
             {
                 SWImei.FillColor = System.Drawing.Color.Green;
                 SWImei.Text = "Mode: IMEI Actuator";
-                //conimiei = true;
+                conimiei = true;
             }
             else
             {
                 SWImei.FillColor = System.Drawing.Color.Red;
                 SWImei.Text = "Mode: LCA Module";
-                //conimiei = false;
+                conimiei = false;
             }
         }
         private void Timer_Elapsed(object sender, ElapsedEventArgs e)
@@ -568,35 +556,48 @@ namespace LCA_Project
                 btnUser.Text = s;
             };
         }
-        private void closeallform()
-        {
-            if (_form1 != null && _form1.Created)
-            {
-                _form1.Dispose();
-                _form1.Close();
-            }
-            if (_form2 != null && _form2.Created)
-            {
-                _form2.Dispose();
-                _form2.Close();
 
-            }
-            if (_form3 != null && _form3.Created)
-            {
-                _form3.Dispose();
-                _form3.Close();
-            }
-            if (_form4 != null && _form4.Created)
-            {
-                _form4.Dispose();
-                _form4.Close();
-            }
+        // Helper: đóng an toàn 1 Form1, bỏ qua nếu null hoặc đã bị dispose
+        private void CloseForm(Form1 form)
+        {
+            if (form == null || form.IsDisposed) return;
+            try { form.Close(); } catch { }
         }
+
         private void SWImei_Click(object sender, EventArgs e)
         {
-            var message = "Do you confirm Change Mode Imei ?";
-            var caption = "Warning"; 
-            var rsSWimei = System.Windows.Forms.MessageBox.Show(message, caption, MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+            // Kiểm tra còn form nào đang mở không
+            bool anyOpen = (_form1 != null && !_form1.IsDisposed)
+                        || (_form2 != null && !_form2.IsDisposed)
+                        || (_form3 != null && !_form3.IsDisposed)
+                        || (_form4 != null && !_form4.IsDisposed);
+
+            if (anyOpen)
+            {
+                var confirmClose = System.Windows.Forms.MessageBox.Show(
+                    "Đang có Form đang mở. Đóng tất cả Form trước khi đổi Mode?",
+                    "Warning",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Warning);
+
+                if (confirmClose != DialogResult.Yes) return;
+
+                // Đóng cả 4 form (dùng if riêng biệt, KHÔNG dùng else if)
+                CloseForm(_form1);
+                CloseForm(_form2);
+                CloseForm(_form3);
+                CloseForm(_form4);
+            }
+
+            // Hỏi xác nhận đổi Mode
+            var rsSWimei = System.Windows.Forms.MessageBox.Show(
+                "Do you confirm Change Mode Imei ?" + Environment.NewLine +
+                "Yes: Change to Mode Imei" + Environment.NewLine +
+                "No: Change to Mode LCA Module",
+                "Warning",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning);
+
             switch (rsSWimei)
             {
                 case DialogResult.Yes:
@@ -607,17 +608,14 @@ namespace LCA_Project
                         {
                             SWImei.FillColor = System.Drawing.Color.Green;
                             SWImei.Text = "Mode: IMEI Actuator";
-                           // conimiei = true;
-                           
-                           closeallform();
+                            conimiei = true;
                         }
                         else
                         {
                             SWImei.FillColor = System.Drawing.Color.Red;
                             SWImei.Text = "Mode: LCA Module";
-                           // conimiei = false;
+                            conimiei = false;
                             System.Windows.Forms.MessageBox.Show("Failed to Set SWImei.");
-                           closeallform();
                         }
                     }
                     catch (Exception ex)
@@ -625,6 +623,7 @@ namespace LCA_Project
                         LogProgram.WriteLog("Fail To Set SWImei: " + ex.Message);
                     }
                     break;
+
                 case DialogResult.No:
                     try
                     {
@@ -633,8 +632,7 @@ namespace LCA_Project
                         {
                             SWImei.FillColor = System.Drawing.Color.Red;
                             SWImei.Text = "Mode: LCA Module";
-                           // conimiei = false;
-                            closeallform();
+                            conimiei = false;
                         }
                     }
                     catch (Exception ex)
@@ -659,7 +657,8 @@ namespace LCA_Project
                     this.plc.SetBitInWord(lblIdPort1.Tag.ToString().Split('.')[0], int.Parse(lblIdPort1.Tag.ToString().Split('.')[1]));
                     this.plc.SetBitInWord(lblIdPort2.Tag.ToString().Split('.')[0], int.Parse(lblIdPort2.Tag.ToString().Split('.')[1]));
                     string value = DatabaseControllers.Instance.GetIdModel("Port1", "Port2", cbxPort1.Text.ToString(), cbxPort2.Text.ToString());
-                    if (string.IsNullOrEmpty(value)) {
+                    if (string.IsNullOrEmpty(value))
+                    {
                         return;
                     }
                     if (btnUser.Text == "Master")
