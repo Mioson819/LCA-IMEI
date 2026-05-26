@@ -59,7 +59,7 @@ namespace LCA_Project
         private string Port1, Port2, Port3, Port4;
         private frmWatting _frmWatting;
         private System.Timers.Timer timer;
-        public static bool conimiei = false;
+        public static bool conimiei = true;
         public frmMaincs()
         {
             InitializeComponent();
@@ -568,30 +568,30 @@ namespace LCA_Project
                 btnUser.Text = s;
             };
         }
-        //private void closeallform()
-        //{
-        //    if (_form1 != null && _form1.Created)
-        //    {
-        //       _form1.Dispose();
-        //        _form1.Close();
-        //    }
-        //    if (_form2 != null && _form2.Created)
-        //    {
-        //       _form2.Dispose();
-        //        _form2.Close();
+        private void closeallform()
+        {
+            if (_form1 != null && _form1.Created)
+            {
+                _form1.Dispose();
+                _form1.Close();
+            }
+            if (_form2 != null && _form2.Created)
+            {
+                _form2.Dispose();
+                _form2.Close();
 
-        //    }
-        //    if (_form3 != null && _form3.Created)
-        //    {   
-        //       _form3.Dispose();
-        //        _form3.Close(); 
-        //    }
-        //    if (_form4 != null && _form4.Created)
-        //    {   
-        //        _form4.Dispose();
-        //        _form4.Close();
-        //    }
-        //}
+            }
+            if (_form3 != null && _form3.Created)
+            {
+                _form3.Dispose();
+                _form3.Close();
+            }
+            if (_form4 != null && _form4.Created)
+            {
+                _form4.Dispose();
+                _form4.Close();
+            }
+        }
         private void SWImei_Click(object sender, EventArgs e)
         {
             var message = "Do you confirm Change Mode Imei ?";
@@ -609,7 +609,7 @@ namespace LCA_Project
                             SWImei.Text = "Mode: IMEI Actuator";
                            // conimiei = true;
                            
-                           // closeallform();
+                           closeallform();
                         }
                         else
                         {
@@ -617,7 +617,7 @@ namespace LCA_Project
                             SWImei.Text = "Mode: LCA Module";
                            // conimiei = false;
                             System.Windows.Forms.MessageBox.Show("Failed to Set SWImei.");
-                           // closeallform();
+                           closeallform();
                         }
                     }
                     catch (Exception ex)
@@ -634,7 +634,7 @@ namespace LCA_Project
                             SWImei.FillColor = System.Drawing.Color.Red;
                             SWImei.Text = "Mode: LCA Module";
                            // conimiei = false;
-                           // closeallform();
+                            closeallform();
                         }
                     }
                     catch (Exception ex)

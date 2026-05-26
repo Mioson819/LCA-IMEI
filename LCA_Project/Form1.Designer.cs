@@ -26,7 +26,7 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            Guna.UI2.AnimatorNS.Animation animation1 = new Guna.UI2.AnimatorNS.Animation();
+            Guna.UI2.AnimatorNS.Animation animation2 = new Guna.UI2.AnimatorNS.Animation();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             this.lblIDPORT = new System.Windows.Forms.Label();
             this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
@@ -99,6 +99,7 @@
             this.label37 = new System.Windows.Forms.Label();
             this.label38 = new System.Windows.Forms.Label();
             this.tableLayoutPanel19 = new System.Windows.Forms.TableLayoutPanel();
+            this.ModifyWork2 = new Guna.UI2.WinForms.Guna2GradientButton();
             this.SetEmptyCompelete = new Guna.UI2.WinForms.Guna2GradientButton();
             this.SetCompCompelete = new Guna.UI2.WinForms.Guna2GradientButton();
             this.ResetCompelete = new Guna.UI2.WinForms.Guna2GradientButton();
@@ -1181,7 +1182,6 @@
             this.ModifyWork.Size = new System.Drawing.Size(84, 66);
             this.ModifyWork.TabIndex = 3;
             this.ModifyWork.Text = "MODIFY";
-            this.ModifyWork.Visible = false;
             this.ModifyWork.Click += new System.EventHandler(this.ModifyWork_Click);
             // 
             // SetEmptyWork
@@ -1335,6 +1335,7 @@
             this.tableLayoutPanel18.SetColumnSpan(this.tableLayoutPanel19, 2);
             this.tableLayoutPanel19.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
             this.tableLayoutPanel19.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
+            this.tableLayoutPanel19.Controls.Add(this.ModifyWork2, 1, 1);
             this.tableLayoutPanel19.Controls.Add(this.SetEmptyCompelete, 0, 1);
             this.tableLayoutPanel19.Controls.Add(this.SetCompCompelete, 1, 0);
             this.tableLayoutPanel19.Controls.Add(this.ResetCompelete, 0, 0);
@@ -1348,6 +1349,28 @@
             this.tableLayoutPanel19.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
             this.tableLayoutPanel19.Size = new System.Drawing.Size(180, 144);
             this.tableLayoutPanel19.TabIndex = 8;
+            // 
+            // ModifyWork2
+            // 
+            this.ModifyWork2.BorderRadius = 4;
+            this.ModifyWork2.BorderThickness = 1;
+            this.guna2Transition1.SetDecoration(this.ModifyWork2, Guna.UI2.AnimatorNS.DecorationType.None);
+            this.ModifyWork2.DisabledState.BorderColor = System.Drawing.Color.DarkGray;
+            this.ModifyWork2.DisabledState.CustomBorderColor = System.Drawing.Color.DarkGray;
+            this.ModifyWork2.DisabledState.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(169)))), ((int)(((byte)(169)))), ((int)(((byte)(169)))));
+            this.ModifyWork2.DisabledState.FillColor2 = System.Drawing.Color.FromArgb(((int)(((byte)(169)))), ((int)(((byte)(169)))), ((int)(((byte)(169)))));
+            this.ModifyWork2.DisabledState.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(141)))), ((int)(((byte)(141)))), ((int)(((byte)(141)))));
+            this.ModifyWork2.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.ModifyWork2.FillColor = System.Drawing.Color.Gray;
+            this.ModifyWork2.FillColor2 = System.Drawing.Color.White;
+            this.ModifyWork2.Font = new System.Drawing.Font("Segoe UI", 9.75F, System.Drawing.FontStyle.Bold);
+            this.ModifyWork2.ForeColor = System.Drawing.Color.Black;
+            this.ModifyWork2.Location = new System.Drawing.Point(93, 75);
+            this.ModifyWork2.Name = "ModifyWork2";
+            this.ModifyWork2.Size = new System.Drawing.Size(84, 66);
+            this.ModifyWork2.TabIndex = 4;
+            this.ModifyWork2.Text = "MODIFY";
+            this.ModifyWork2.Click += new System.EventHandler(this.ModifyWork2_Click);
             // 
             // SetEmptyCompelete
             // 
@@ -1433,22 +1456,22 @@
             // 
             this.guna2Transition1.AnimationType = Guna.UI2.AnimatorNS.AnimationType.HorizSlide;
             this.guna2Transition1.Cursor = null;
-            animation1.AnimateOnlyDifferences = true;
-            animation1.BlindCoeff = ((System.Drawing.PointF)(resources.GetObject("animation1.BlindCoeff")));
-            animation1.LeafCoeff = 0F;
-            animation1.MaxTime = 1F;
-            animation1.MinTime = 0F;
-            animation1.MosaicCoeff = ((System.Drawing.PointF)(resources.GetObject("animation1.MosaicCoeff")));
-            animation1.MosaicShift = ((System.Drawing.PointF)(resources.GetObject("animation1.MosaicShift")));
-            animation1.MosaicSize = 0;
-            animation1.Padding = new System.Windows.Forms.Padding(0);
-            animation1.RotateCoeff = 0F;
-            animation1.RotateLimit = 0F;
-            animation1.ScaleCoeff = ((System.Drawing.PointF)(resources.GetObject("animation1.ScaleCoeff")));
-            animation1.SlideCoeff = ((System.Drawing.PointF)(resources.GetObject("animation1.SlideCoeff")));
-            animation1.TimeCoeff = 0F;
-            animation1.TransparencyCoeff = 0F;
-            this.guna2Transition1.DefaultAnimation = animation1;
+            animation2.AnimateOnlyDifferences = true;
+            animation2.BlindCoeff = ((System.Drawing.PointF)(resources.GetObject("animation2.BlindCoeff")));
+            animation2.LeafCoeff = 0F;
+            animation2.MaxTime = 1F;
+            animation2.MinTime = 0F;
+            animation2.MosaicCoeff = ((System.Drawing.PointF)(resources.GetObject("animation2.MosaicCoeff")));
+            animation2.MosaicShift = ((System.Drawing.PointF)(resources.GetObject("animation2.MosaicShift")));
+            animation2.MosaicSize = 0;
+            animation2.Padding = new System.Windows.Forms.Padding(0);
+            animation2.RotateCoeff = 0F;
+            animation2.RotateLimit = 0F;
+            animation2.ScaleCoeff = ((System.Drawing.PointF)(resources.GetObject("animation2.ScaleCoeff")));
+            animation2.SlideCoeff = ((System.Drawing.PointF)(resources.GetObject("animation2.SlideCoeff")));
+            animation2.TimeCoeff = 0F;
+            animation2.TransparencyCoeff = 0F;
+            this.guna2Transition1.DefaultAnimation = animation2;
             // 
             // guna2DragControl1
             // 
@@ -1587,5 +1610,6 @@
         private Guna.UI2.WinForms.Guna2GradientButton btnLoto;
         private Guna.UI2.WinForms.Guna2GradientButton btnControl;
         private Guna.UI2.WinForms.Guna2GradientButton btnSetting;
+        private Guna.UI2.WinForms.Guna2GradientButton ModifyWork2;
     }
 }

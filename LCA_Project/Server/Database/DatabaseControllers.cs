@@ -249,6 +249,34 @@ namespace LCA_Project.Database
                 return null;
             }
         }
+        public DataforloadImei GetDataloadImei(string key)
+        {
+            using (var con = SqlConnect.GetConnection)
+            {
+                con.Open();
+                var cmd = new SqlCommand("SELECT nXULoadNGNow,mYULoadNGNow,TakePointNG,ResetTrayNG FROM ControllerParameterInputsResults  WHERE Station = @key", con);
+                cmd.Parameters.AddWithValue("@key", key);
+                using (var reader = cmd.ExecuteReader())
+                {
+                    var data = new DataforloadImei();
+                    Type type = typeof(DataforloadImei);
+                    if (reader.Read())
+                    {
+                        for (int i = 0; i < reader.FieldCount; i++)
+                        {
+                            string colName = reader.GetName(i);
+                            PropertyInfo prop = type.GetProperty(colName, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
+                            if (prop != null && !reader.IsDBNull(i))
+                            {
+                                prop.SetValue(data, reader.GetValue(i).ToString());
+                            }
+                        }
+                        return data;
+                    }
+                }
+                return null;
+            }
+        }
         public DataforNG4 GetDataNG4(string key)
         {
             using (var con = SqlConnect.GetConnection)

@@ -206,6 +206,7 @@
             this.tableLayoutPanel16 = new System.Windows.Forms.TableLayoutPanel();
             this.panel11 = new System.Windows.Forms.Panel();
             this.tableLayoutPanel25 = new System.Windows.Forms.TableLayoutPanel();
+            this.RqMVFix = new Guna.UI2.WinForms.Guna2GradientButton();
             this.panel12 = new System.Windows.Forms.Panel();
             this.guna2Separator2 = new Guna.UI2.WinForms.Guna2Separator();
             this.label1 = new System.Windows.Forms.Label();
@@ -228,7 +229,6 @@
             this.guna2ControlBox1 = new Guna.UI2.WinForms.Guna2ControlBox();
             this.lblNamePort = new System.Windows.Forms.Label();
             this.guna2DragControl1 = new Guna.UI2.WinForms.Guna2DragControl(this.components);
-            this.RqMVFix = new Guna.UI2.WinForms.Guna2GradientButton();
             this.tableLayoutPanel139.SuspendLayout();
             this.panel119.SuspendLayout();
             this.tableLayoutPanel3.SuspendLayout();
@@ -3396,6 +3396,26 @@
             this.tableLayoutPanel25.Size = new System.Drawing.Size(183, 141);
             this.tableLayoutPanel25.TabIndex = 121;
             // 
+            // RqMVFix
+            // 
+            this.RqMVFix.BorderRadius = 5;
+            this.RqMVFix.DisabledState.BorderColor = System.Drawing.Color.DarkGray;
+            this.RqMVFix.DisabledState.CustomBorderColor = System.Drawing.Color.DarkGray;
+            this.RqMVFix.DisabledState.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(169)))), ((int)(((byte)(169)))), ((int)(((byte)(169)))));
+            this.RqMVFix.DisabledState.FillColor2 = System.Drawing.Color.FromArgb(((int)(((byte)(169)))), ((int)(((byte)(169)))), ((int)(((byte)(169)))));
+            this.RqMVFix.DisabledState.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(141)))), ((int)(((byte)(141)))), ((int)(((byte)(141)))));
+            this.RqMVFix.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.RqMVFix.FillColor = System.Drawing.Color.Silver;
+            this.RqMVFix.FillColor2 = System.Drawing.Color.White;
+            this.RqMVFix.Font = new System.Drawing.Font("Segoe UI", 9.25F);
+            this.RqMVFix.ForeColor = System.Drawing.Color.Black;
+            this.RqMVFix.Location = new System.Drawing.Point(95, 41);
+            this.RqMVFix.Name = "RqMVFix";
+            this.RqMVFix.Size = new System.Drawing.Size(83, 95);
+            this.RqMVFix.TabIndex = 71;
+            this.RqMVFix.Text = "Claim Socket";
+            this.RqMVFix.Visible = false;
+            // 
             // panel12
             // 
             this.panel12.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(224)))), ((int)(((byte)(192)))));
@@ -3700,26 +3720,6 @@
             this.guna2DragControl1.DockIndicatorTransparencyValue = 0.6D;
             this.guna2DragControl1.TargetControl = this.lblNamePort;
             this.guna2DragControl1.UseTransparentDrag = true;
-            // 
-            // RqMVFix
-            // 
-            this.RqMVFix.BorderRadius = 5;
-            this.RqMVFix.DisabledState.BorderColor = System.Drawing.Color.DarkGray;
-            this.RqMVFix.DisabledState.CustomBorderColor = System.Drawing.Color.DarkGray;
-            this.RqMVFix.DisabledState.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(169)))), ((int)(((byte)(169)))), ((int)(((byte)(169)))));
-            this.RqMVFix.DisabledState.FillColor2 = System.Drawing.Color.FromArgb(((int)(((byte)(169)))), ((int)(((byte)(169)))), ((int)(((byte)(169)))));
-            this.RqMVFix.DisabledState.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(141)))), ((int)(((byte)(141)))), ((int)(((byte)(141)))));
-            this.RqMVFix.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.RqMVFix.FillColor = System.Drawing.Color.Silver;
-            this.RqMVFix.FillColor2 = System.Drawing.Color.White;
-            this.RqMVFix.Font = new System.Drawing.Font("Segoe UI", 9.25F);
-            this.RqMVFix.ForeColor = System.Drawing.Color.Black;
-            this.RqMVFix.Location = new System.Drawing.Point(95, 41);
-            this.RqMVFix.Name = "RqMVFix";
-            this.RqMVFix.Size = new System.Drawing.Size(83, 95);
-            this.RqMVFix.TabIndex = 71;
-            this.RqMVFix.Text = "Claim Socket";
-            this.RqMVFix.Visible = false;
             // 
             // frmTeaching2
             // 

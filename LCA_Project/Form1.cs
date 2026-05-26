@@ -39,7 +39,7 @@ namespace LCA_Project
         private FrmSettingController frmSettingController;
         private ucButtonDisplayGrid<DataforUnload> _Unload;
         private ucButtonDisplayGrid<Dataforload> _Load;
-        private ucButtonDisplayGrid<Dataforload> _Load2;
+        private ucButtonDisplayGrid<DataforloadImei> _Load2;
         private ucButtonDisplayGrid<DataforNG4> _NG4;
         private CameraAS cam;
         private frmTeaching frmTeaching;
@@ -81,6 +81,7 @@ namespace LCA_Project
         private Type type;
         private string _NameStation;
         private string _ModifyWork;
+        private string _ModifyWork2;
         private string _beforStatus = "";
         private string _beforAlarmText = "";
         private ushort _prevAlarmCode = 0;
@@ -582,6 +583,7 @@ namespace LCA_Project
             else
             {
                 ReadDataforUnload();
+                ModifyWork2.Visible = false;
             }
         }
         private void AutoRead()
@@ -599,6 +601,10 @@ namespace LCA_Project
             PropertyInfo pModify = type.GetProperty("ModifyWork", BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
             object data3 = DatabaseControllers.Instance.GetDataByInputResults(this.nameStation);
             _ModifyWork = pModify != null ? (pModify.GetValue(data3) + "").Trim() : null;
+            //ModifyWork 2
+            PropertyInfo pModify2 = type.GetProperty("ModifyWork2", BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
+            object data33 = DatabaseControllers.Instance.GetDataByInputResults(this.nameStation);
+            _ModifyWork2 = pModify2 != null ? (pModify2.GetValue(data33) + "").Trim() : null;
             // ResetTrayNG
             PropertyInfo pResetTrayNG = type.GetProperty("ResetTrayNG", BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
             object data4 = DatabaseControllers.Instance.GetDataByInputResults(this.nameStation);
@@ -772,8 +778,8 @@ namespace LCA_Project
         }
         private void ReadDataforUnloadImei()
         {
-            _Load2 = new ucButtonDisplayGrid<Dataforload>(this.nX, this.ny, this.plc,
-                DatabaseControllers.Instance.GetDataload(this.nameStation), this.nameStation, _ModifyWork,"Load");
+            _Load2 = new ucButtonDisplayGrid<DataforloadImei>(this.nX, this.ny, this.plc,
+                DatabaseControllers.Instance.GetDataloadImei(this.nameStation), this.nameStation, _ModifyWork2, "Load");
             pnlUnload.Controls.Clear();
             pnlUnload.Controls.Add(_Load2);
             if (_NG4 != null)
@@ -929,6 +935,25 @@ namespace LCA_Project
                     SetCompWork.Enabled = true;
                     ResetWork.Enabled = true;
                     SetEmptyWork.Enabled = true;
+                }
+            }
+        }
+        private void ModifyWork2_Click(object sender, EventArgs e)
+        {
+            if (_Load2 != null)
+            {
+                _Load2.Modify(_ModifyWork2);
+                if (_Load2.isSend == true)
+                {
+                    SetEmptyCompelete.Enabled = false;
+                    ResetCompelete.Enabled = false;
+                    SetCompCompelete.Enabled = false;
+                }
+                else
+                {
+                    SetEmptyCompelete.Enabled = true;
+                    ResetCompelete.Enabled = true;
+                    SetCompCompelete.Enabled = true;
                 }
             }
         }

@@ -458,6 +458,13 @@ namespace LCA_Project.Utilities
         public string nXloadnow { get; set; }
         public string nYloadnow { get; set; }
     }
+    public class DataforloadImei
+    {
+        public string nXULoadNGNow { get; set; }
+        public string mYULoadNGNow { get; set; }
+        public string TakePointNG { get; set; }
+        public string ResetTrayNG { get; set; }
+    }
     public class Dataforload
     {
         public string nXLoadOK { get; set; }
@@ -518,6 +525,8 @@ namespace LCA_Project.Utilities
         public string SetCompCompelete { get; set; }
         public string SetEmptyCompelete { get; set; }
         public string ModifyCompelete { get; set; }
+        public string ModifyWork2 { get; set; }
+        public string ModifyCompelete2 { get; set; }
         //
         public string Skip { get; set; }
         public string Retri { get; set; }
