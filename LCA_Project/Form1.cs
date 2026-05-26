@@ -939,7 +939,11 @@ namespace LCA_Project
                 if (timerUPH != null) { timerUPH.Stop(); }
 
                 // 2. Cancel token để tất cả Task/loop thoát
-                _cts.Cancel();
+                //    Guard: chỉ Cancel nếu chưa bị dispose hoặc đã cancel rồi
+                if (_cts != null && !_cts.IsCancellationRequested)
+                {
+                    try { _cts.Cancel(); } catch (ObjectDisposedException) { }
+                }
 
                 // 3. Dừng và lưu thời gian
                 lock (_timeLock)
@@ -1232,7 +1236,7 @@ namespace LCA_Project
 
         public void guna2ControlBox1_Click(object sender, EventArgs e)
         {
-            try { this.Dispose(); this.Close(); } catch { }
+            this.Close(); // Close() tự trigger FormClosing → Dispose() đúng thứ tự
         }
 
         private void btnOldResult_Click(object sender, EventArgs e)
