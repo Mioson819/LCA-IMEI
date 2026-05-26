@@ -1000,12 +1000,20 @@ namespace LCA_Project
 
         private void guna2GradientButton14_Click(object sender, EventArgs e)
         {
-            var frm = new frmLotoImei(() =>
+            if (frmMaincs.modeimei)
+            {
+                var frm = new frmLotoImei(() =>
+                {
+                    frmTeaching2 frmTeaching2 = new frmTeaching2(this.nameStation, this.plc);
+                    frmTeaching2.Show();
+                });
+                frm.Show();
+            }
+            else
             {
                 frmTeaching2 frmTeaching2 = new frmTeaching2(this.nameStation, this.plc);
                 frmTeaching2.Show();
-            });
-            frm.Show();
+            }
         }
 
         private void ResetWork_Click(object sender, EventArgs e)
@@ -1393,12 +1401,20 @@ namespace LCA_Project
 
         private void btnSetting_Click(object sender, EventArgs e)
         {
-            var frm = new frmLotoImei(() =>
+            if (frmMaincs.modeimei)
+            {
+                var frm = new frmLotoImei(() =>
             {
                 frmSetting _frmSetting = new frmSetting(this.nameStation, this.plc);
                 _frmSetting.Show();
             });
-            frm.Show();
+                frm.Show();
+            }
+            else
+            {
+                frmSetting _frmSetting = new frmSetting(this.nameStation, this.plc);
+                _frmSetting.Show();
+            }
         }
 
         private void btnControl_Click(object sender, EventArgs e)
