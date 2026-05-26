@@ -3414,7 +3414,6 @@
             this.RqMVFix.Size = new System.Drawing.Size(83, 95);
             this.RqMVFix.TabIndex = 71;
             this.RqMVFix.Text = "Claim Socket";
-            this.RqMVFix.Visible = false;
             // 
             // panel12
             // 

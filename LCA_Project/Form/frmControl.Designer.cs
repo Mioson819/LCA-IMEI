@@ -394,7 +394,6 @@
             this.RqMVFix.Size = new System.Drawing.Size(144, 122);
             this.RqMVFix.TabIndex = 76;
             this.RqMVFix.Text = "Claim";
-            this.RqMVFix.Visible = false;
             // 
             // tableLayoutPanel139
             // 

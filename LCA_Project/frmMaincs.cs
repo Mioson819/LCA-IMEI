@@ -47,7 +47,7 @@ namespace LCA_Project
         private string Port1, Port2, Port3, Port4;
         private frmWatting _frmWatting;
         private System.Timers.Timer timer;
-        public static bool conimiei = true;
+        public static bool modeimei = true;
         public frmMaincs()
         {
             InitializeComponent();
@@ -76,13 +76,13 @@ namespace LCA_Project
             {
                 SWImei.FillColor = System.Drawing.Color.Green;
                 SWImei.Text = "Mode: IMEI Actuator";
-                conimiei = true;
+                modeimei = true;
             }
             else
             {
                 SWImei.FillColor = System.Drawing.Color.Red;
                 SWImei.Text = "Mode: LCA Module";
-                conimiei = false;
+                modeimei = false;
             }
         }
         private void Timer_Elapsed(object sender, ElapsedEventArgs e)
@@ -608,13 +608,13 @@ namespace LCA_Project
                         {
                             SWImei.FillColor = System.Drawing.Color.Green;
                             SWImei.Text = "Mode: IMEI Actuator";
-                            conimiei = true;
+                            modeimei = true;
                         }
                         else
                         {
                             SWImei.FillColor = System.Drawing.Color.Red;
                             SWImei.Text = "Mode: LCA Module";
-                            conimiei = false;
+                            modeimei = false;
                             System.Windows.Forms.MessageBox.Show("Failed to Set SWImei.");
                         }
                     }
@@ -632,13 +632,13 @@ namespace LCA_Project
                         {
                             SWImei.FillColor = System.Drawing.Color.Red;
                             SWImei.Text = "Mode: LCA Module";
-                            conimiei = false;
+                            modeimei = false;
                         }
                         else
                         {
                             SWImei.FillColor = System.Drawing.Color.Green;
                             SWImei.Text = "Mode: IMEI Actuator";
-                            conimiei = true;
+                            modeimei = true;
                             System.Windows.Forms.MessageBox.Show("Failed to Reset SWImei.");
                         }
                         // Reset bit ChangeModeTrayInput về 0 trên tất cả form đã đóng

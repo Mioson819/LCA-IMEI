@@ -731,6 +731,17 @@ namespace LCA_Project.Form.Teaching
         }
         private void frmTeaching2_Load(object sender, EventArgs e)
         {
+            if (frmMaincs.modeimei)
+            {
+                RqMVFix.Visible = false;
+            }
+            else
+            {
+                RqMVCFix.Visible = false;
+                RqMCClp.Visible = false;
+                RqMCDown.Visible = false;
+                RqMCOut.Visible = false;
+            }
         }
     }
     public enum DataTypeEvent

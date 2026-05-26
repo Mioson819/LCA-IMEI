@@ -355,6 +355,10 @@ namespace LCA_Project.Form
         }
         private void frmControl_Load(object sender, EventArgs e)
         {
+            if(frmMaincs.modeimei)
+            {
+                RqMVFix.Visible = false;
+            }
         }
         private void tableLayoutPanel133_Paint(object sender, PaintEventArgs e)
         {

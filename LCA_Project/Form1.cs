@@ -665,7 +665,7 @@ namespace LCA_Project
             timer.AutoReset = true;
             timer.Start();
             lblStation.Text = this.Nametation;
-            if (!frmMaincs.conimiei)
+            if (!frmMaincs.modeimei)
             {
                 ModifyWork2.Visible = false;
                 ChangeModeTrayInput.Visible = false;
