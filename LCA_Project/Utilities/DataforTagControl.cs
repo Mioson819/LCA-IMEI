@@ -527,6 +527,7 @@ namespace LCA_Project.Utilities
         public string ModifyCompelete { get; set; }
         public string ModifyWork2 { get; set; }
         public string ModifyCompelete2 { get; set; }
+        public string ChangeModeTrayInput { get; set; }
         //
         public string Skip { get; set; }
         public string Retri { get; set; }
