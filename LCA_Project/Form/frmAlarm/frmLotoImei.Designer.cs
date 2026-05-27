@@ -23,6 +23,7 @@ namespace LCA_Project.Form.frmAlarm
             this.guna2Panel1 = new Guna.UI2.WinForms.Guna2Panel();
             this.txtPassword = new Guna.UI2.WinForms.Guna2TextBox();
             this.lblStatus = new System.Windows.Forms.Label();
+            this.btnLock = new Guna.UI2.WinForms.Guna2Button();
             this.panel1.SuspendLayout();
             this.tableLayoutPanel1.SuspendLayout();
             this.guna2Panel1.SuspendLayout();
@@ -86,6 +87,7 @@ namespace LCA_Project.Form.frmAlarm
             this.tableLayoutPanel1.SetColumnSpan(this.guna2Panel1, 3);
             this.guna2Panel1.Controls.Add(this.lblStatus);
             this.guna2Panel1.Controls.Add(this.txtPassword);
+            this.guna2Panel1.Controls.Add(this.btnLock);
             this.guna2Panel1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.guna2Panel1.Location = new System.Drawing.Point(3, 3);
             this.guna2Panel1.Name = "guna2Panel1";
@@ -128,6 +130,20 @@ namespace LCA_Project.Form.frmAlarm
             this.lblStatus.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             this.lblStatus.Visible = false;
             //
+            // btnLock
+            //
+            this.btnLock.AutoRoundedCorners = true;
+            this.btnLock.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(53)))), ((int)(((byte)(69)))));
+            this.btnLock.Font = new System.Drawing.Font("Segoe UI", 13F, System.Drawing.FontStyle.Bold);
+            this.btnLock.ForeColor = System.Drawing.Color.White;
+            this.btnLock.Location = new System.Drawing.Point(246, 370);
+            this.btnLock.Name = "btnLock";
+            this.btnLock.Size = new System.Drawing.Size(389, 55);
+            this.btnLock.TabIndex = 9;
+            this.btnLock.Text = "🔒  Khoá Quyền Admin";
+            this.btnLock.Visible = false;
+            this.btnLock.Click += new System.EventHandler(this.btnLock_Click);
+            //
             // frmLotoImei
             //
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -153,5 +169,6 @@ namespace LCA_Project.Form.frmAlarm
         private Guna.UI2.WinForms.Guna2Panel guna2Panel1;
         private Guna.UI2.WinForms.Guna2TextBox txtPassword;
         private System.Windows.Forms.Label lblStatus;
+        private Guna.UI2.WinForms.Guna2Button btnLock;
     }
 }

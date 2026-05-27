@@ -549,17 +549,30 @@ namespace LCA_Project
         }
         private void btnUser_Click(object sender, EventArgs e)
         {
-            var loto = new frmLotoImei(() =>
-            {
-                // Sau khi xác thực thành công: enable admin buttons trên tất cả các form
-                Form1[] stations = { _form1, _form2, _form3, _form4 };
-                foreach (var f in stations)
+            var loto = new frmLotoImei(
+                onSuccess: () =>
                 {
-                    if (f != null && !f.IsDisposed)
-                        f.SetAdminButtons(true);
+                    // Sau khi xác thực thành công: enable admin buttons trên tất cả các form
+                    Form1[] stations = { _form1, _form2, _form3, _form4 };
+                    foreach (var f in stations)
+                    {
+                        if (f != null && !f.IsDisposed)
+                            f.SetAdminButtons(true);
+                    }
+                    btnUser.Text = "Master";
+                },
+                onLock: () =>
+                {
+                    // Khoá lại quyền admin trên tất cả các form
+                    Form1[] stations = { _form1, _form2, _form3, _form4 };
+                    foreach (var f in stations)
+                    {
+                        if (f != null && !f.IsDisposed)
+                            f.SetAdminButtons(false);
+                    }
+                    btnUser.Text = "User";
                 }
-                btnUser.Text = "Master";
-            });
+            );
             loto.Show();
         }
 
