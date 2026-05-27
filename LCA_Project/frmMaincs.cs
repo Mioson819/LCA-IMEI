@@ -83,6 +83,7 @@ namespace LCA_Project
                 SWImei.FillColor = System.Drawing.Color.Red;
                 SWImei.Text = "Mode: LCA Module";
                 modeimei = false;
+                btnUser.Enabled = false;
             }
         }
         private void Timer_Elapsed(object sender, ElapsedEventArgs e)
@@ -313,7 +314,7 @@ namespace LCA_Project
                 sendlabel?.Invoke(label);
                 _startRead?.Invoke(values);
                 btnStart.ForeColor = System.Drawing.Color.Green;
-                // btnStatusMes.PerformClick();
+              
             }
             else
             {
@@ -609,6 +610,7 @@ namespace LCA_Project
                             SWImei.FillColor = System.Drawing.Color.Green;
                             SWImei.Text = "Mode: IMEI Actuator";
                             modeimei = true;
+                            btnUser.Enabled = true;
                         }
                         else
                         {
@@ -633,6 +635,7 @@ namespace LCA_Project
                             SWImei.FillColor = System.Drawing.Color.Red;
                             SWImei.Text = "Mode: LCA Module";
                             modeimei = false;
+                            btnUser.Enabled = false;
                         }
                         else
                         {
