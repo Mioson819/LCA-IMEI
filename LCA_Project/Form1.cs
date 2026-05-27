@@ -658,7 +658,10 @@ namespace LCA_Project
                 if (isImeiMode)
                     ReadDataforUnloadImei();   // bit = 1 → Mode IMEI
                 else
+                {
                     ReadDataforUnload();        // bit = 0 → Mode LCA
+                    ModifyWork2.Visible = false;
+                }
             }
             timer = new System.Timers.Timer(2500);
             timer.Elapsed += Timer_Elapsed;
@@ -1004,12 +1007,9 @@ namespace LCA_Project
 
         private void guna2GradientButton14_Click(object sender, EventArgs e)
         {
-            var frm = new frmLotoImei(() =>
-            {
-                frmTeaching2 frmTeaching2 = new frmTeaching2(this.nameStation, this.plc);
-                frmTeaching2.Show();
-            });
-            frm.Show();
+            frmTeaching2 frmTeaching2 = new frmTeaching2(this.nameStation, this.plc);
+            frmTeaching2.Show();
+
         }
 
         private void ResetWork_Click(object sender, EventArgs e)
@@ -1397,12 +1397,9 @@ namespace LCA_Project
 
         private void btnSetting_Click(object sender, EventArgs e)
         {
-            var frm = new frmLotoImei(() =>
-            {
-                frmSetting _frmSetting = new frmSetting(this.nameStation, this.plc);
-                _frmSetting.Show();
-            });
-            frm.Show();
+
+            frmSetting _frmSetting = new frmSetting(this.nameStation, this.plc);
+            _frmSetting.Show();
         }
 
         private void btnControl_Click(object sender, EventArgs e)
