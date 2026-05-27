@@ -83,7 +83,6 @@ namespace LCA_Project
                 SWImei.FillColor = System.Drawing.Color.Red;
                 SWImei.Text = "Mode: LCA Module";
                 modeimei = false;
-                btnUser.Enabled = false;
             }
         }
         private void Timer_Elapsed(object sender, ElapsedEventArgs e)
@@ -314,7 +313,7 @@ namespace LCA_Project
                 sendlabel?.Invoke(label);
                 _startRead?.Invoke(values);
                 btnStart.ForeColor = System.Drawing.Color.Green;
-              
+
             }
             else
             {
@@ -550,12 +549,18 @@ namespace LCA_Project
         }
         private void btnUser_Click(object sender, EventArgs e)
         {
-            _frmUser = new frmUser();
-            _frmUser.Show();
-            _frmUser._user = (s) =>
+            var loto = new frmLotoImei(() =>
             {
-                btnUser.Text = s;
-            };
+                // Sau khi xác thực thành công: enable admin buttons trên tất cả các form
+                Form1[] stations = { _form1, _form2, _form3, _form4 };
+                foreach (var f in stations)
+                {
+                    if (f != null && !f.IsDisposed)
+                        f.SetAdminButtons(true);
+                }
+                btnUser.Text = "Master";
+            });
+            loto.Show();
         }
 
         // Helper: đóng an toàn 1 Form1, bỏ qua nếu null hoặc đã bị dispose

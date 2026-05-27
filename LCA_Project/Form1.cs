@@ -629,8 +629,21 @@ namespace LCA_Project
         }
 
         // ====== Load ======
+        /// <summary>
+        /// Gọi từ frmMaincs sau khi xác thực mật khẩu thành công để mở/khóa các nút admin.
+        /// </summary>
+        public void SetAdminButtons(bool enabled)
+        {
+            btnTeaching.Enabled = enabled;
+            btnSetting.Enabled = enabled;
+        }
+
         private void Form1_Load(object sender, EventArgs e)
         {
+            // Khóa các nút admin cho đến khi user xác thực thành công qua frmLotoImei
+            btnTeaching.Enabled = false;
+            btnSetting.Enabled = false;
+
             AutoRead();
             StartBatchPoller();
             ReadDataforLoad();
@@ -1009,9 +1022,9 @@ namespace LCA_Project
         private void guna2GradientButton14_Click(object sender, EventArgs e)
         {
 
-                frmTeaching2 frmTeaching2 = new frmTeaching2(this.nameStation, this.plc);
-                frmTeaching2.Show();
-            
+            frmTeaching2 frmTeaching2 = new frmTeaching2(this.nameStation, this.plc);
+            frmTeaching2.Show();
+
         }
 
         private void ResetWork_Click(object sender, EventArgs e)
@@ -1149,7 +1162,7 @@ namespace LCA_Project
                     await TryResetBitWithVerify(word, bit);   // đang ON → tắt
                 else
                     await TrySetBitWithVerify(word, bit);     // đang OFF → bật
-                
+
             }
             catch (Exception ex)
             {
@@ -1401,9 +1414,9 @@ namespace LCA_Project
         private void btnSetting_Click(object sender, EventArgs e)
         {
 
-                frmSetting _frmSetting = new frmSetting(this.nameStation, this.plc);
-                _frmSetting.Show();
-            
+            frmSetting _frmSetting = new frmSetting(this.nameStation, this.plc);
+            _frmSetting.Show();
+
         }
 
         private void btnControl_Click(object sender, EventArgs e)
