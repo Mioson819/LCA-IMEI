@@ -669,11 +669,18 @@ namespace LCA_Project
                     }
                 }
                 if (isImeiMode)
+                {
                     ReadDataforUnloadImei();   // bit = 1 → Mode IMEI
+                    ChangeModeTrayInput.BackColor = System.Drawing.Color.LimeGreen;
+                    ChangeModeTrayInput.Text = "Mode 2 Tray Input";
+                }
+
                 else
                 {
                     ReadDataforUnload();        // bit = 0 → Mode LCA
                     ModifyWork2.Visible = false;
+                    ChangeModeTrayInput.BackColor = System.Drawing.Color.Gray;
+                    ChangeModeTrayInput.Text = "Mode 1 Tray Input";
                 }
 
             }
