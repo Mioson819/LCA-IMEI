@@ -699,7 +699,7 @@
             this.btnChangeModel2.TabIndex = 19;
             this.btnChangeModel2.Text = "Change Model";
             this.btnChangeModel2.Visible = false;
-            this.btnChangeModel2.Click += new System.EventHandler(this.btnChangeModel2_Click);
+            //this.btnChangeModel2.Click += new System.EventHandler(this.btnChangeModel2_Click);
             // 
             // btnChangeModel1
             // 
@@ -718,7 +718,7 @@
             this.btnChangeModel1.TabIndex = 18;
             this.btnChangeModel1.Text = "Change Model";
             this.btnChangeModel1.Visible = false;
-            this.btnChangeModel1.Click += new System.EventHandler(this.btnChangeModel1_Click);
+            //this.btnChangeModel1.Click += new System.EventHandler(this.btnChangeModel1_Click);
             // 
             // guna2Button1
             // 

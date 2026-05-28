@@ -48,6 +48,7 @@ namespace LCA_Project
         private frmCurPos _frmCurPos;
         private frmSekectPos _frmSelected;
         private frmAlarm _frmAlarm;
+        private frmControl _frmControl;           // frmControl đang mở (nếu có)
         private KeyenceHostLinkTcpClient plc;
         private CancellationTokenSource _cts;
         private System.Timers.Timer timer;
@@ -638,6 +639,10 @@ namespace LCA_Project
         {
             btnTeaching.Enabled = enabled;
             btnSetting.Enabled = enabled;
+
+            // Lan truyền trạng thái xuống frmControl đang mở (nếu có)
+            if (_frmControl != null && !_frmControl.IsDisposed)
+                _frmControl.SetSensorDoor(enabled);
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -1468,7 +1473,9 @@ namespace LCA_Project
 
         private void btnControl_Click(object sender, EventArgs e)
         {
-            frmControl _frmControl = new frmControl(this.nameStation, this.plc);
+            _frmControl = new frmControl(this.nameStation, this.plc);
+            // Xoá reference khi frmControl đóng để tránh memory leak
+            _frmControl.FormClosed += (s, args) => _frmControl = null;
             _frmControl.Show();
         }
         public void ResetChangeModeTag()
