@@ -325,22 +325,85 @@ namespace LCA_Project
         {
             Port1 = DatabaseControllers.Instance.IdModel("Port1", cbxPort1.Text.ToString());
             lblIdPort1.Text = Port1;
+
+            if ((_form1 == null || _form1.IsDisposed) && !string.IsNullOrEmpty(Port1))
+            {
+                try
+                {
+                    var tag = DatabaseControllers.Instance.GetDataByKey("Station1");
+                    if (tag != null && !string.IsNullOrWhiteSpace(tag.IdJob))
+                    {
+                        this.plc.WriteInt32(tag.IdJob, int.Parse(Port1));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogProgram.WriteLog("cbxPort1 write IdJob to PLC error: " + ex.Message);
+                }
+            }
         }
         private void guna2ComboBox1_SelectedIndexChanged(object sender, EventArgs e)
         {
             Port2 = DatabaseControllers.Instance.IdModel("Port2", cbxPort2.Text.ToString());
             lblIdPort2.Text = Port2;
+
+            if ((_form2 == null || _form2.IsDisposed) && !string.IsNullOrEmpty(Port2))
+            {
+                try
+                {
+                    var tag = DatabaseControllers.Instance.GetDataByKey("Station2");
+                    if (tag != null && !string.IsNullOrWhiteSpace(tag.IdJob))
+                    {
+                        this.plc.WriteInt32(tag.IdJob, int.Parse(Port2));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogProgram.WriteLog("cbxPort2 write IdJob to PLC error: " + ex.Message);
+                }
+            }
         }
         private void guna2ComboBox3_SelectedIndexChanged(object sender, EventArgs e)
         {
             Port3 = DatabaseControllers.Instance.IdModel("Port3", cbxPort3.Text.ToString());
             lblIdPort3.Text = Port3;
-        }
 
+            if ((_form3 == null || _form3.IsDisposed) && !string.IsNullOrEmpty(Port3))
+            {
+                try
+                {
+                    var tag = DatabaseControllers.Instance.GetDataByKey("Station3");
+                    if (tag != null && !string.IsNullOrWhiteSpace(tag.IdJob))
+                    {
+                        this.plc.WriteInt32(tag.IdJob, int.Parse(Port3));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogProgram.WriteLog("cbxPort3 write IdJob to PLC error: " + ex.Message);
+                }
+            }
+        }
         private void cbxPort4_SelectedIndexChanged(object sender, EventArgs e)
         {
             Port4 = DatabaseControllers.Instance.IdModel("Port4", cbxPort4.Text.ToString());
             lblIdPort4.Text = Port4;
+
+            if ((_form4 == null || _form4.IsDisposed) && !string.IsNullOrEmpty(Port4))
+            {
+                try
+                {
+                    var tag = DatabaseControllers.Instance.GetDataByKey("Station4");
+                    if (tag != null && !string.IsNullOrWhiteSpace(tag.IdJob))
+                    {
+                        this.plc.WriteInt32(tag.IdJob, int.Parse(Port4));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogProgram.WriteLog("cbxPort4 write IdJob to PLC error: " + ex.Message);
+                }
+            }
         }
         private void frmMaincs_FormClosing(object sender, FormClosingEventArgs e)
         {
@@ -477,9 +540,9 @@ namespace LCA_Project
                 System.Windows.Forms.MessageBox.Show("Ban Chua Chon Model Port ");
             }
         }
-        private void lblIdPort1_Click(object sender, EventArgs e)
-        {
-        }
+        //private void lblIdPort1_Click(object sender, EventArgs e)
+        //{
+        //}
         //private void btnChangeModel2_Click(object sender, EventArgs e)
         //{
         //    try
