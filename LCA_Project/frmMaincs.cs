@@ -57,10 +57,10 @@ namespace LCA_Project
                 this.plc = plc.Value;
                 break;
             }
-            this.plc.Open();
-            this.plc.StartCommunication();
-            CamOnline1();
-            CamOnline2();
+            //this.plc.Open();
+            //this.plc.StartCommunication();
+            //CamOnline1();
+            //CamOnline2();
             _frExport = new frmExport(this.plc);
             _frmWatting = new frmWatting();
             timer = new System.Timers.Timer();
