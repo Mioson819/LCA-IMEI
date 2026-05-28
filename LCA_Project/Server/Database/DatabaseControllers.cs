@@ -366,12 +366,12 @@ namespace LCA_Project.Database
                     while (reader.Read())
                     {
                         var s = reader["NameModel"].ToString();
-                            cbx.Items.Add(s);
+                        cbx.Items.Add(s);
                     }
                 }
             }
         }
-        public List<string> LoadDataNameModel3(List<string> _list,string NameStation)
+        public List<string> LoadDataNameModel3(List<string> _list, string NameStation)
         {
             using (var con = SqlConnect.GetConnection)
             {
@@ -383,7 +383,7 @@ namespace LCA_Project.Database
                     while (reader.Read())
                     {
                         var s = reader["NameModel"].ToString();
-                       _list.Add(s);
+                        _list.Add(s);
                     }
                 }
                 return _list;
@@ -719,7 +719,7 @@ namespace LCA_Project.Database
                 return null;
             }
         }
-        public string GetIdModel(string PortLeft,string PortRight,string ModelNamePortLeft, string ModelNamePortRight)
+        public string GetIdModel(string PortLeft, string PortRight, string ModelNamePortLeft, string ModelNamePortRight)
         {
             using (var con = SqlConnect.GetConnection)
             {
@@ -761,8 +761,8 @@ namespace LCA_Project.Database
                 }
             }
         }
-        public bool GetPassword(int value,string Password)
-         {
+        public bool GetPassword(int value, string Password)
+        {
             using (var con = SqlConnect.GetConnection)
             {
                 try
@@ -771,7 +771,7 @@ namespace LCA_Project.Database
                     var cmd = new SqlCommand("Select Id from [User]   WHERE Id=@id and _User=@Password", con);
                     cmd.Parameters.AddWithValue("@id", value);
                     cmd.Parameters.AddWithValue("@Password", Password);
-                    if (cmd.ExecuteScalar()?.ToString()!= null)
+                    if (cmd.ExecuteScalar()?.ToString() != null)
                     {
                         return true;
                     }
@@ -783,7 +783,7 @@ namespace LCA_Project.Database
                 }
             }
         }
-        public bool UpdatePassword(int id ,string Password)
+        public bool UpdatePassword(int id, string Password)
         {
             using (var con = SqlConnect.GetConnection)
             {

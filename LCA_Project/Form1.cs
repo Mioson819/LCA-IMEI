@@ -48,6 +48,7 @@ namespace LCA_Project
         private frmCurPos _frmCurPos;
         private frmSekectPos _frmSelected;
         private frmAlarm _frmAlarm;
+        private frmControl _frmControl;           // frmControl đang mở (nếu có)
         private KeyenceHostLinkTcpClient plc;
         private CancellationTokenSource _cts;
         private System.Timers.Timer timer;
@@ -106,7 +107,9 @@ namespace LCA_Project
         private string ResetALL;
         private string ResetTrayNG4;
         private string ResetTrayNG;
-        private string _changeModeTag;   // Tag PLC cho ChangeModeTrayInput (dạng "WORD.BIT")
+        private string _changeModeTag;       // Tag PLC cho ChangeModeTrayInput (dạng "WORD.BIT")
+        private string _tray1InputSignal;   // Tag PLC xác nhận Tray1 đang active (cột Tray1InputSignal trong DB)
+        private string _tray2InputSignal;   // Tag PLC xác nhận Tray2 đang active (cột Tray2InputSignal trong DB)
         private int nX;
         private int ny;
         private int nYNG4;
@@ -636,6 +639,10 @@ namespace LCA_Project
         {
             btnTeaching.Enabled = enabled;
             btnSetting.Enabled = enabled;
+
+            // Lan truyền trạng thái xuống frmControl đang mở (nếu có)
+            if (_frmControl != null && !_frmControl.IsDisposed)
+                _frmControl.SetSensorDoor(enabled);
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -730,6 +737,14 @@ namespace LCA_Project
             PropertyInfo pChangeModeInput = type.GetProperty("ChangeModeTrayInput", BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
             object dataChangeModeInput = DatabaseControllers.Instance.GetDataByInputResults(this.nameStation);
             _changeModeTag = pChangeModeInput != null ? (pChangeModeInput.GetValue(dataChangeModeInput) + "").Trim() : null;
+            // Tray1InputSignal — bit PLC xác nhận Tray1 đang active (dùng để routing _NG4._takPointLoad)
+            PropertyInfo pTray1Signal = type.GetProperty("Tray1InputSignal", BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
+            object dataTray1Signal = DatabaseControllers.Instance.GetDataByInputResults(this.nameStation);
+            _tray1InputSignal = pTray1Signal != null ? (pTray1Signal.GetValue(dataTray1Signal) + "").Trim() : null;
+            // Tray2InputSignal — bit PLC xác nhận Tray2 đang active
+            PropertyInfo pTray2Signal = type.GetProperty("Tray2InputSignal", BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
+            object dataTray2Signal = DatabaseControllers.Instance.GetDataByInputResults(this.nameStation);
+            _tray2InputSignal = pTray2Signal != null ? (pTray2Signal.GetValue(dataTray2Signal) + "").Trim() : null;
             _labelMonitors.Clear();
             _bitMonitors.Clear();
             foreach (System.Windows.Forms.Control control in GetAllControls(this))
@@ -916,8 +931,38 @@ namespace LCA_Project
             pnlUnload.Controls.Add(_Load2);
             if (_NG4 != null)
             {
+                // _tray1InputSignal đọc từ DB cột Tray1InputSignal trong AutoRead()
+                // _tray2InputSignal đọc từ DB cột Tray2InputSignal trong AutoRead()
+                // Cả 2 đã sẵn có trước khi hàm này được gọi (AutoRead chạy trước Form1_Load)
+                string tray1Tag = _tray1InputSignal;
+
+                // Xóa toàn bộ subscription cũ trên _NG4._takPointLoad
+                _NG4._takPointLoad -= _Load.UpdateLabel;
                 _NG4._takPointLoad -= _Load2.UpdateLabel;
-                _NG4._takPointLoad += _Load2.UpdateLabel;
+
+                // Routing lambda: đọc Tray1InputSignal bit lúc NG4 fire
+                _NG4._takPointLoad += (x, y, classify, outVal) =>
+                {
+                    bool tray1Active = false;
+                    try
+                    {
+                        string word; int bit;
+                        if (!string.IsNullOrWhiteSpace(tray1Tag)
+                            && TryParseTag(tray1Tag, out word, out bit))
+                        {
+                            tray1Active = plc.ReadBitFromWord(word, bit);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        LogProgram.WriteLog("ReadDataforUnloadImei routing lambda error: " + ex.Message, this.Nametation);
+                    }
+
+                    if (tray1Active)
+                        _Load.UpdateLabel(x, y, classify, outVal);   // Tray1 đang active
+                    else
+                        _Load2.UpdateLabel(x, y, classify, outVal);  // Tray2 đang active
+                };
             }
             _Load2.CheckDelete = () => { DeleteFile(); };
         }
@@ -1428,7 +1473,9 @@ namespace LCA_Project
 
         private void btnControl_Click(object sender, EventArgs e)
         {
-            frmControl _frmControl = new frmControl(this.nameStation, this.plc);
+            _frmControl = new frmControl(this.nameStation, this.plc);
+            // Xoá reference khi frmControl đóng để tránh memory leak
+            _frmControl.FormClosed += (s, args) => _frmControl = null;
             _frmControl.Show();
         }
         public void ResetChangeModeTag()

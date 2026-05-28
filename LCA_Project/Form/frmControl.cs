@@ -295,7 +295,8 @@ namespace LCA_Project.Form
             if (ContainsAny(input, "Rq", "Dry") && tag != null && tag != string.Empty)
             {
                 return DataTypeEvent.Click;
-            }else 
+            }
+            else
             if (ContainsAny(input, "RqSaveModel", "btnSaveCurrentPos", "btnMoveCurrentPos", "LoadMasterCam", "Retrig", "Run"))
             {
                 return DataTypeEvent.ClickMessenger;
@@ -355,10 +356,25 @@ namespace LCA_Project.Form
         }
         private void frmControl_Load(object sender, EventArgs e)
         {
-            if(frmMaincs.modeimei)
+            if (frmMaincs.modeimei)
             {
                 RqMVFix.Visible = false;
             }
+            // Khoá mặc định khi load — chỉ mở khi admin xác thực qua frmLotoImei
+            RqSensorDoor.Enabled = false;
+        }
+
+        /// <summary>
+        /// Được gọi từ Form1.SetAdminButtons() để mở/khoá nút RqSensorDoor.
+        /// Thread-safe: có thể gọi từ bất kỳ thread nào.
+        /// </summary>
+        public void SetSensorDoor(bool enabled)
+        {
+            if (this.IsDisposed) return;
+            if (RqSensorDoor.InvokeRequired)
+                RqSensorDoor.Invoke(new Action(() => RqSensorDoor.Enabled = enabled));
+            else
+                RqSensorDoor.Enabled = enabled;
         }
         private void tableLayoutPanel133_Paint(object sender, PaintEventArgs e)
         {

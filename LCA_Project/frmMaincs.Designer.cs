@@ -680,7 +680,6 @@
             this.lblIdPort1.Tag = "MR21700.0";
             this.lblIdPort1.Text = "N/A";
             this.lblIdPort1.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            this.lblIdPort1.Click += new System.EventHandler(this.lblIdPort1_Click);
             // 
             // btnChangeModel2
             // 
@@ -699,7 +698,6 @@
             this.btnChangeModel2.TabIndex = 19;
             this.btnChangeModel2.Text = "Change Model";
             this.btnChangeModel2.Visible = false;
-            this.btnChangeModel2.Click += new System.EventHandler(this.btnChangeModel2_Click);
             // 
             // btnChangeModel1
             // 
@@ -718,7 +716,6 @@
             this.btnChangeModel1.TabIndex = 18;
             this.btnChangeModel1.Text = "Change Model";
             this.btnChangeModel1.Visible = false;
-            this.btnChangeModel1.Click += new System.EventHandler(this.btnChangeModel1_Click);
             // 
             // guna2Button1
             // 

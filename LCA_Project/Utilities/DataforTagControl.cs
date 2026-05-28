@@ -12,7 +12,7 @@ namespace LCA_Project.Utilities
     public class DataforTagControl
     {
         public string LoadUnloadSocket { get; set; }
-        public string RunUnloadSocket {  get; set; }
+        public string RunUnloadSocket { get; set; }
         public string UnloadSocketX { get; set; }
         public string UnloadSocketY { get; set; }
         public string LimitX_ { get; set; }
@@ -528,6 +528,8 @@ namespace LCA_Project.Utilities
         public string ModifyWork2 { get; set; }
         public string ModifyCompelete2 { get; set; }
         public string ChangeModeTrayInput { get; set; }
+        public string Tray1InputSignal { get; set; }
+        public string Tray2InputSignal { get; set; }
         //
         public string Skip { get; set; }
         public string Retri { get; set; }

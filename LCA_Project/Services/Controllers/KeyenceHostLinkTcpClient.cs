@@ -11,25 +11,26 @@ namespace Project_Visionpro.Program.PLC
     public class KeyenceHostLinkTcpClient : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler PropertyChanged;
-        private  object _lock = new object();
-        private  object _lockSETBIT = new object();
-        private  object _lockRESETBIT = new object();
-        private  object _lockWrite = new object();
-        private  object _lockRead = new object();
+        private object _lock = new object();
+        private object _lockSETBIT = new object();
+        private object _lockRESETBIT = new object();
+        private object _lockWrite = new object();
+        private object _lockRead = new object();
         private object _lockRead32 = new object();
         private object _lockWrite32 = new object();
         private bool _isConnected = false;
         private object _lockReadS16 = new object();
         private object _lockWriteS16 = new object();
+        private object _lockReadBit = new object();
         protected virtual void PropertyChangedEvent(string propertyName)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
         private TcpClient _client;
         private NetworkStream _stream;
-        private  string _ip;
-        private  int _port;
-        private  System.Timers.Timer _timer = new System.Timers.Timer(); 
+        private string _ip;
+        private int _port;
+        private System.Timers.Timer _timer = new System.Timers.Timer();
         private event EventHandler _reconnect;
         public bool IsSessionStarted { get; private set; } = true;
         public KeyenceHostLinkTcpClient(string ipAddress, int port)
@@ -105,9 +106,9 @@ namespace Project_Visionpro.Program.PLC
             if (response.StartsWith("EX:")) return TcpReceiveCMD.CheckCodeWrong;
             return TcpReceiveCMD.Unknow;
         }
-        public  bool StartCommunication()
+        public bool StartCommunication()
         {
-            string response =  SendCommand("CR");
+            string response = SendCommand("CR");
             var result = ParseResponse(response);
             IsSessionStarted = result == TcpReceiveCMD.OK;
             return IsSessionStarted;
@@ -265,7 +266,7 @@ namespace Project_Visionpro.Program.PLC
                 //MessageBox.Show("4");
             }
         }
-        public bool WriteInt16(string address,short value)
+        public bool WriteInt16(string address, short value)
         {
             lock (_lockWriteS16)
             {
@@ -357,11 +358,14 @@ namespace Project_Visionpro.Program.PLC
         //}
         public bool ReadBit(string address)
         {
-            string response = SendCommand($"RD {address}");
-            if (response == "1") return true;
-            if (response == "0") return false;
-            LogProgram.WriteLog($"[PLC] Bit không hợp lệ tại {address}: {response}");
-            return false;
+            lock (_lockReadBit)
+            {
+                string response = SendCommand($"RD {address}");
+                if (response == "1") return true;
+                if (response == "0") return false;
+                LogProgram.WriteLog($"[PLC] Bit không hợp lệ tại {address}: {response}");
+                return false;
+            }
         }
         public bool SetBit(string address)
         {
@@ -387,7 +391,9 @@ namespace Project_Visionpro.Program.PLC
         }
         public bool SetBitInWord(string wordAddress, int bitIndex)
         {
-            lock (_lockSETBIT)
+            // Dùng _lock (lock của SendCommand) làm mutex duy nhất cho toàn bộ RMW
+            // để tránh race condition giữa Read và Write khi 4 form gọi đồng thời
+            lock (_lock)
             {
                 ushort original = ReadUInt16(wordAddress);
                 ushort updated = (ushort)(original | (1 << bitIndex));
@@ -396,7 +402,7 @@ namespace Project_Visionpro.Program.PLC
         }
         public bool ResetBitInWord(string wordAddress, int bitIndex)
         {
-            lock (_lockRESETBIT)
+            lock (_lock)
             {
                 ushort original = ReadUInt16(wordAddress);
                 ushort updated = (ushort)(original & ~(1 << bitIndex));
@@ -405,24 +411,24 @@ namespace Project_Visionpro.Program.PLC
         }
         private void Reconnect(object sender, System.Timers.ElapsedEventArgs e)
         {
-                try
-                {
-                    Close();
-                    Open();
-                    StartCommunication();
-                  //  LogProgram.WriteLog($"Ready communication to {_ip}:{_port} after Reconnect");
-                }
-                catch (Exception ex)
-                {
-                 Console.WriteLine($"Reconnection failed: {ex.Message}");
+            try
+            {
+                Close();
+                Open();
+                StartCommunication();
+                //  LogProgram.WriteLog($"Ready communication to {_ip}:{_port} after Reconnect");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Reconnection failed: {ex.Message}");
                 _timer.Interval = 3000; // Thử lại sau 3 giây
-                    _timer.AutoReset = false; // Chỉ chạy một lần
-                    _timer.Elapsed -= Reconnect; // Đảm bảo không đăng ký nhiều lần
-                    _timer.Elapsed += Reconnect; // Đăng ký lại sự kiện
-                    _timer.Start();   
-                    PropertyChangedEvent($"{Tcpstatus.disconnected}");
-                   // LogProgram.WriteLog($"Reconnection failed: {ex.Message}");
-                }
+                _timer.AutoReset = false; // Chỉ chạy một lần
+                _timer.Elapsed -= Reconnect; // Đảm bảo không đăng ký nhiều lần
+                _timer.Elapsed += Reconnect; // Đăng ký lại sự kiện
+                _timer.Start();
+                PropertyChangedEvent($"{Tcpstatus.disconnected}");
+                // LogProgram.WriteLog($"Reconnection failed: {ex.Message}");
+            }
         }
     }
     public enum TcpReceiveCMD

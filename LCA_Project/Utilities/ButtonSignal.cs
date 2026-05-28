@@ -11,7 +11,7 @@ namespace LCA_Project.Utilities
 {
     public class ButtonSignal<T> : System.Windows.Forms.Panel where T : Control, new()
     {
-    //    private Guna2CircleButton _buttonSignal;
+        //    private Guna2CircleButton _buttonSignal;
         private Guna2VSeparator _vseparator;
         private System.Windows.Forms.Label _labelSignal;
         private System.Windows.Forms.Label _labelRegister;
@@ -22,7 +22,13 @@ namespace LCA_Project.Utilities
             set
             {
                 int idx = value?.IndexOf('(') ?? -1;
-                _labelSignal.Text = idx >= 0 ? value.Substring(0, idx) : value;
+                string trimmed = idx >= 0 ? value.Substring(0, idx).Trim() : value;
+                // Bỏ hậu tố " Input" / " Output" ở cuối tên hiển thị
+                trimmed = trimmed
+                    .Replace(" Input", "")
+                    .Replace(" Output", "")
+                    .Trim();
+                _labelSignal.Text = trimmed;
             }
         }
         public string RegisterSignal
@@ -32,7 +38,8 @@ namespace LCA_Project.Utilities
         private string _imgSignal;
         public string ImgSignal
         {
-            get {
+            get
+            {
                 if (_imgSignal == null)
                 {
                     return "Control";
@@ -46,9 +53,9 @@ namespace LCA_Project.Utilities
         }
         public ButtonSignal()
         {
-           // var basebutton;
+            // var basebutton;
             _panel = new Guna2Panel();
-        //    _buttonSignal = new Guna2CircleButton();
+            //    _buttonSignal = new Guna2CircleButton();
             _vseparator = new Guna2VSeparator();
             _labelSignal = new System.Windows.Forms.Label();
             _labelRegister = new System.Windows.Forms.Label();
