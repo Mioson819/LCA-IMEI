@@ -57,10 +57,10 @@ namespace LCA_Project
                 this.plc = plc.Value;
                 break;
             }
-            this.plc.Open();
-            this.plc.StartCommunication();
-            CamOnline1();
-            CamOnline2();
+            //this.plc.Open();
+            //this.plc.StartCommunication();
+            //CamOnline1();
+            //CamOnline2();
             _frExport = new frmExport(this.plc);
             _frmWatting = new frmWatting();
             timer = new System.Timers.Timer();
@@ -540,41 +540,7 @@ namespace LCA_Project
                 System.Windows.Forms.MessageBox.Show("Ban Chua Chon Model Port ");
             }
         }
-        //private void lblIdPort1_Click(object sender, EventArgs e)
-        //{
-        //}
-        //private void btnChangeModel2_Click(object sender, EventArgs e)
-        //{
-        //    try
-        //    {
-        //        if (Port3 == null || Port4 == null)
-        //        {
-        //            System.Windows.MessageBox.Show("Please Select Full Model Port3 and Port4");
-        //            return;
-        //        }
-        //        else
-        //        {
-        //            if (System.Windows.Forms.MessageBox.Show("Do you confirm Change Model ?", "Warning", MessageBoxButtons.OKCancel, MessageBoxIcon.Question) == DialogResult.Cancel) return;
-        //            this.plc.SetBitInWord(lblIdPort3.Tag.ToString().Split('.')[0], int.Parse(lblIdPort3.Tag.ToString().Split('.')[1]));
-        //            this.plc.SetBitInWord(lblIdPort4.Tag.ToString().Split('.')[0], int.Parse(lblIdPort4.Tag.ToString().Split('.')[1]));
-        //            btnChangeModel2.FillColor = System.Drawing.Color.Green;
-        //            string value = DatabaseControllers.Instance.GetIdModel("Port3", "Port4", cbxPort3.Text.ToString(), cbxPort4.Text.ToString());
-        //            if (string.IsNullOrEmpty(value))
-        //            {
-        //                return;
-        //            }
-        //            if (btnUser.Text == "Master")
-        //            {
-        //                cam2.Reconnect("00" + value, "00" + Port3 + "_" + "00" + Port4, 23, cbxPort3.Text.ToString(), cbxPort4.Text.ToString());
-        //                _frmWatting.Show();
-        //            }
-        //        }
-        //    }
-        //    finally
-        //    {
-        //        btnChangeModel2.FillColor = System.Drawing.Color.Gray;
-        //    }
-        //}
+
         private void guna2Button2_Click(object sender, EventArgs e)
         {
             if (_form1 != null && _form2 != null && _form3 != null && _form4 != null && _form1.Created && _form2.Created && _form3.Created && _form4.Created && _form1.logWatcher != null && _form2.logWatcher != null && _form3.logWatcher != null && _form4.logWatcher != null)
@@ -792,6 +758,40 @@ namespace LCA_Project
         //        btnChangeModel1.FillColor = System.Drawing.Color.Gray;
         //    }
         //}
-
+        //private void lblIdPort1_Click(object sender, EventArgs e)
+        //{
+        //}
+        //private void btnChangeModel2_Click(object sender, EventArgs e)
+        //{
+        //    try
+        //    {
+        //        if (Port3 == null || Port4 == null)
+        //        {
+        //            System.Windows.MessageBox.Show("Please Select Full Model Port3 and Port4");
+        //            return;
+        //        }
+        //        else
+        //        {
+        //            if (System.Windows.Forms.MessageBox.Show("Do you confirm Change Model ?", "Warning", MessageBoxButtons.OKCancel, MessageBoxIcon.Question) == DialogResult.Cancel) return;
+        //            this.plc.SetBitInWord(lblIdPort3.Tag.ToString().Split('.')[0], int.Parse(lblIdPort3.Tag.ToString().Split('.')[1]));
+        //            this.plc.SetBitInWord(lblIdPort4.Tag.ToString().Split('.')[0], int.Parse(lblIdPort4.Tag.ToString().Split('.')[1]));
+        //            btnChangeModel2.FillColor = System.Drawing.Color.Green;
+        //            string value = DatabaseControllers.Instance.GetIdModel("Port3", "Port4", cbxPort3.Text.ToString(), cbxPort4.Text.ToString());
+        //            if (string.IsNullOrEmpty(value))
+        //            {
+        //                return;
+        //            }
+        //            if (btnUser.Text == "Master")
+        //            {
+        //                cam2.Reconnect("00" + value, "00" + Port3 + "_" + "00" + Port4, 23, cbxPort3.Text.ToString(), cbxPort4.Text.ToString());
+        //                _frmWatting.Show();
+        //            }
+        //        }
+        //    }
+        //    finally
+        //    {
+        //        btnChangeModel2.FillColor = System.Drawing.Color.Gray;
+        //    }
+        //}
     }
 }
