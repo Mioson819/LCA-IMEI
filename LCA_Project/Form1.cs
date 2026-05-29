@@ -448,7 +448,15 @@ namespace LCA_Project
             }));
 
             CountDelete++;
-            this.plc.SetBitInWord(this._ReStartNoData.Split('.')[0], int.Parse(this._ReStartNoData.Split('.')[1]));
+            // FIX: guard null/_ReStartNoData trước khi Split để tránh NullReferenceException / FormatException
+            if (!string.IsNullOrWhiteSpace(this._ReStartNoData) && this._ReStartNoData.Contains('.'))
+            {
+                var _rsParts = this._ReStartNoData.Split('.');
+                if (_rsParts.Length >= 2 && int.TryParse(_rsParts[1], out int _rsBit))
+                    this.plc.SetBitInWord(_rsParts[0], _rsBit);
+                else
+                    LogProgram.WriteLog("HandleLogLine: _ReStartNoData format sai: " + this._ReStartNoData, this.Nametation);
+            }
         }
 
         private void ReadStatus()
@@ -1428,7 +1436,7 @@ namespace LCA_Project
                     {
                         LogProgram.WriteLog("StartTrigger read error: " + ex, this.Nametation);
                     }
-                    await Task.Delay(300);
+                    await Task.Delay(400);
                 }
             }, _cts.Token);
         }

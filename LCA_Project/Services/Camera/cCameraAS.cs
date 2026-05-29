@@ -14,71 +14,91 @@ public class CameraAS : IDisposable
     private string _ip;
     private int _port;
     private Socket _clientSocket;
-    private byte[] buffer = new byte[1024];
+    // FIX Bug A: buffer cục bộ trong ReceiveData thay vì field dùng chung
     private System.Threading.Timer pingTimer;
     public bool IsConnected { get; private set; }
     public bool isCalib = true;
     public string[] NeedleData;
     public int TriggerOn = 0;
     public int CalibStep = 1;
-    public string[] xya;
-    public delegate void SendResult(string[] s,string NameStaton);
+    // FIX Bug C: xya không còn là field dùng chung — data được copy trước khi invoke
+    public delegate void SendResult(string[] s, string NameStaton);
     public event SendResult _send;
     public event EventHandler _StartCalib;
     public bool changejob = true;
-    private string nameStation { get; set; }
-    private object _lock = new object();
-    private object _lockReice = new object();
-    private bool StatusChangeJob=true;
+    // FIX Bug D: nameStation được set trước khi gửi lệnh (xem TriggerResult/ChangFearture)
+    private volatile string nameStation;
+    private readonly object _lock = new object();
+    private readonly object _lockReice = new object();
+    // FIX Bug E: _connectLock bảo vệ Connect/Disconnect khỏi race với PingTimer
+    private readonly object _connectLock = new object();
+    private bool StatusChangeJob = true;
     private bool StatusSO = false;
-    private string Idmodel{  get; set; }
+    private string Idmodel { get; set; }
     private string IdPLC { get; set; }
-    public delegate void StatusJob(string s1,string s2);
+    public delegate void StatusJob(string s1, string s2);
     public StatusJob _StatusJob;
     public string NamePort;
     public CameraAS(string ip, int port)
     {
         _ip = ip;
         _port = port;
-        // Ping mỗi 2 giây
-        pingTimer = new System.Threading.Timer(PingTimerCallback, null, 0, 2000);
+        // Ping mỗi 2 giây — delay 2s trước lần đầu để tránh race với Connect() ban đầu
+        pingTimer = new System.Threading.Timer(PingTimerCallback, null, 2000, 2000);
     }
     private void PingTimerCallback(object state)
     {
-        try
+        // FIX Bug E: dùng lock để tránh race Connect/Disconnect với ReceiveData
+        lock (_connectLock)
         {
-            Ping ping = new Ping();
-            PingReply reply = ping.Send(_ip, 500);
-            if (reply.Status == IPStatus.Success)
+            try
             {
-                if (!IsConnected)
-                    Connect();
+                using (Ping ping = new Ping())
+                {
+                    PingReply reply = ping.Send(_ip, 500);
+                    if (reply.Status == IPStatus.Success)
+                    {
+                        if (!IsConnected)
+                            ConnectInternal();
+                    }
+                    else
+                    {
+                        if (IsConnected)
+                            DisconnectSocketOnly();
+                    }
+                }
             }
-            else
+            catch
             {
                 if (IsConnected)
                     DisconnectSocketOnly();
             }
         }
-        catch
-        {
-            if (IsConnected)
-                DisconnectSocketOnly();
-        }
     }
     public void Connect()
     {
+        lock (_connectLock)
+        {
+            ConnectInternal();
+        }
+    }
+    // Phần thực sự kết nối — gọi bên trong _connectLock
+    private void ConnectInternal()
+    {
         try
         {
-            DisconnectSocketOnly(); 
-            xya = new string[3];
+            DisconnectSocketOnly();
             _clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             _clientSocket.Connect(new IPEndPoint(IPAddress.Parse(_ip), _port));
+            // FIX Bug A: cấp phát buffer cục bộ mới cho mỗi lần BeginReceive
+            byte[] localBuffer = new byte[1024];
             try
             {
-                _clientSocket.BeginReceive(buffer, 0, buffer.Length, SocketFlags.None, new AsyncCallback(ReceiveData), null);
+                _clientSocket.BeginReceive(localBuffer, 0, localBuffer.Length, SocketFlags.None,
+                    new AsyncCallback(ReceiveData), localBuffer);
             }
-            catch {
+            catch
+            {
                 DisconnectSocketOnly();
                 throw;
             }
@@ -93,8 +113,11 @@ public class CameraAS : IDisposable
     }
     public void Disconnect()
     {
-        DisconnectSocketOnly();
-        pingTimer?.Dispose();
+        lock (_connectLock)
+        {
+            DisconnectSocketOnly();
+            pingTimer?.Dispose();
+        }
     }
     private void DisconnectSocketOnly()
     {
@@ -104,7 +127,7 @@ public class CameraAS : IDisposable
             {
                 try { _clientSocket.Shutdown(SocketShutdown.Both); } catch { }
                 try { _clientSocket.Close(); } catch { }
-                try { _clientSocket.Dispose();} catch { }
+                try { _clientSocket.Dispose(); } catch { }
             }
             IsConnected = false;
             Console.WriteLine("TCP disconnected from camera!");
@@ -113,6 +136,8 @@ public class CameraAS : IDisposable
     }
     private void ReceiveData(IAsyncResult ar)
     {
+        // FIX Bug A: lấy buffer từ AsyncState (cục bộ của lần BeginReceive này)
+        byte[] localBuffer = (byte[])ar.AsyncState;
         try
         {
             lock (_lockReice)
@@ -122,7 +147,7 @@ public class CameraAS : IDisposable
                 int bytesRead;
                 try
                 {
-                    bytesRead = _clientSocket.EndReceive(ar);
+                    bytesRead = sock.EndReceive(ar);
                 }
                 catch (ObjectDisposedException)
                 {
@@ -141,52 +166,50 @@ public class CameraAS : IDisposable
                 }
                 if (bytesRead > 0)
                 {
-                    string stringData = Encoding.ASCII.GetString(buffer, 0, bytesRead);
+                    string stringData = Encoding.ASCII.GetString(localBuffer, 0, bytesRead);
                     Console.WriteLine($"{stringData}");
-                    //------------------
-                    if (stringData.Contains("Welcome")&& Idmodel != ""&&IdPLC!="")
+                    if (stringData.Contains("Welcome") && Idmodel != "" && IdPLC != "")
                     {
                     }
-                    else if (stringData == "User: "&&Idmodel!= "" && IdPLC != "")
+                    else if (stringData == "User: " && Idmodel != "" && IdPLC != "")
                     {
                         SendCommand($"admin\r\n");
                     }
-                    else if (stringData == "Password: " && Idmodel!= "" && IdPLC != "")
+                    else if (stringData == "Password: " && Idmodel != "" && IdPLC != "")
                     {
                         SendCommand($"\r\n");
                     }
-                    else if (stringData == "User Logged In\r\n" && Idmodel!= "" && IdPLC != "")
+                    else if (stringData == "User Logged In\r\n" && Idmodel != "" && IdPLC != "")
                     {
-                         SendCommand($"SO0\r\n");
+                        SendCommand($"SO0\r\n");
                     }
-                    else if (stringData == "1\r\n" && Idmodel!= "" && IdPLC != " ")
+                    else if (stringData == "1\r\n" && Idmodel != "" && IdPLC != " ")
                     {
                         if (StatusChangeJob)
                         {
-                            StatusChangeJob=false;
-                            StatusSO=true;
+                            StatusChangeJob = false;
+                            StatusSO = true;
                             SendCommand($"LF{Idmodel}_{IdPLC}.job\r\n");
-                            _StatusJob?.Invoke("Watting",NamePort);
+                            _StatusJob?.Invoke("Watting", NamePort);
                         }
-                        else if(StatusSO)
+                        else if (StatusSO)
                         {
-                            StatusSO=false;
+                            StatusSO = false;
                             SendCommand($"SO1\r\n");
-                            //Console.WriteLine("SO1");
                         }
-                        else if(StatusChangeJob==false&&StatusSO==false)
+                        else if (StatusChangeJob == false && StatusSO == false)
                         {
                             StatusChangeJob = true;
                             StatusSO = true;
-                            Reconnect(Idmodel, IdPLC,7890,"","");
-                            Idmodel= "";
+                            Reconnect(Idmodel, IdPLC, 7890, "", "");
+                            Idmodel = "";
                             IdPLC = "";
-                            _StatusJob?.Invoke("Success",NamePort);
+                            _StatusJob?.Invoke("Success", NamePort);
                         }
                     }
-                    else if (stringData=="2\r\n")
+                    else if (stringData == "2\r\n")
                     {
-                        _StatusJob?.Invoke("Error",NamePort);
+                        _StatusJob?.Invoke("Error", NamePort);
                     }
                     else
                     {
@@ -194,21 +217,35 @@ public class CameraAS : IDisposable
                         string[] lines = stringSeparators.Split(',');
                         if (lines.Length > 1)
                         {
-                            // FLOW TỰ ĐỘNG CALIB
                             Console.WriteLine("CHECK");
                             if (lines[0] == "GCP" && lines[1] == "1")
                             {
-                                if (lines.Length >= 2)
+                                // FIX Bug B: kiểm tra đủ 5 phần tử (index 0..4) trước khi truy cập
+                                if (lines.Length >= 5)
                                 {
-                                    var s = lines[2].Split('.');
-                                    xya[0] = s[0].Trim() + s[1].Trim();
-                                    var s2 = lines[3].Split('.');
-                                    xya[1] = s2[0].Trim() + s2[1].Trim();
-                                    var s3 = lines[4].Split('.');
-                                    xya[2] = s3[0].Trim() + s3[1].Trim();
-                                    // Console.WriteLine("Received: " + xya[2]);
-                                    _send?.Invoke(xya, nameStation);
-                                    LogProgram.WriteLog($"PC send Data to " + $"{nameStation} " +"Postion :" + $"{xya[0]} " + $"{xya[1]} " + $"{xya[2]} ");
+                                    try
+                                    {
+                                        // FIX Bug C: tạo mảng local mới, không dùng field xya dùng chung
+                                        string[] xyaLocal = new string[3];
+                                        var s = lines[2].Split('.');
+                                        xyaLocal[0] = s[0].Trim() + (s.Length > 1 ? s[1].Trim() : "");
+                                        var s2 = lines[3].Split('.');
+                                        xyaLocal[1] = s2[0].Trim() + (s2.Length > 1 ? s2[1].Trim() : "");
+                                        var s3 = lines[4].Split('.');
+                                        xyaLocal[2] = s3[0].Trim() + (s3.Length > 1 ? s3[1].Trim() : "");
+                                        // FIX Bug D: đọc nameStation đã được set trước khi gửi GCP
+                                        string stationSnapshot = nameStation;
+                                        _send?.Invoke(xyaLocal, stationSnapshot);
+                                        LogProgram.WriteLog($"PC send Data to {stationSnapshot} Position: {xyaLocal[0]} {xyaLocal[1]} {xyaLocal[2]}");
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        LogProgram.WriteLog($"[CameraAS] Parse GCP data error: {ex.Message}");
+                                    }
+                                }
+                                else
+                                {
+                                    LogProgram.WriteLog($"[CameraAS] GCP packet thiếu fields: '{stringSeparators}' (cần >= 5, nhận {lines.Length})");
                                 }
                             }
                             else if (lines[0] == "GS" && lines[1] == "1")
@@ -227,29 +264,13 @@ public class CameraAS : IDisposable
                                 }
                                 CalibStep++;
                             }
-                            try
-                            {
-                                if (_clientSocket != null && _clientSocket.Connected)
-                                    _clientSocket.BeginReceive(buffer, 0, buffer.Length, SocketFlags.None, new AsyncCallback(ReceiveData), null);
-                            }
-                            catch
-                            {
-                                DisconnectSocketOnly();
-                            }
+                            // Tiếp tục nhận dữ liệu với buffer mới
+                            BeginReceiveNext(sock);
                             return;
                         }
-                        //  Console.WriteLine("Received: " + stringData.Trim());
                     }
-                    //  Thread.Sleep(300);
-                    try
-                    {
-                        if (_clientSocket != null && _clientSocket.Connected)
-                            _clientSocket.BeginReceive(buffer, 0, buffer.Length, SocketFlags.None, new AsyncCallback(ReceiveData), null);
-                    }
-                    catch
-                    {
-                        DisconnectSocketOnly();
-                    }
+                    // Tiếp tục nhận dữ liệu với buffer mới
+                    BeginReceiveNext(sock);
                 }
             }
         }
@@ -258,7 +279,23 @@ public class CameraAS : IDisposable
             DisconnectSocketOnly();
         }
     }
-    // Gửi lệnh dạng string
+    // FIX Bug A: helper tạo buffer mới cho mỗi lần BeginReceive
+    private void BeginReceiveNext(Socket sock)
+    {
+        try
+        {
+            if (sock != null && sock.Connected)
+            {
+                byte[] newBuffer = new byte[1024];
+                sock.BeginReceive(newBuffer, 0, newBuffer.Length, SocketFlags.None,
+                    new AsyncCallback(ReceiveData), newBuffer);
+            }
+        }
+        catch
+        {
+            DisconnectSocketOnly();
+        }
+    }
     public void SendCommand(string command)
     {
         lock (_lock)
@@ -271,13 +308,13 @@ public class CameraAS : IDisposable
                     byte[] data = Encoding.ASCII.GetBytes(command + "\r\n");
                     _clientSocket.Send(data);
                 }
-                catch { 
-                    DisconnectSocketOnly() ;
+                catch
+                {
+                    DisconnectSocketOnly();
                 }
             }
         }
     }
-    // Gửi lệnh dạng byte[] nếu cần
     public void SendToServer(byte[] data)
     {
         if (_clientSocket != null && _clientSocket.Connected)
@@ -285,19 +322,15 @@ public class CameraAS : IDisposable
             _clientSocket.Send(data);
         }
     }
-    // Hàm xử lý data nhận được (tuỳ biến theo nhu cầu)
     private void HandleData(string[] data)
     {
         NeedleData = data;
         TriggerOn = 2;
-        // Bạn có thể xử lý/hiển thị/log data tại đây
     }
-    // Trigger camera
     public void Trigger()
     {
         SendCommand("GCP,1,Cam2D,0,0,0,0,0,0");
     }
-    // Bắt đầu hiệu chuẩn
     public void CalibCamAS()
     {
         isCalib = true;
@@ -309,13 +342,13 @@ public class CameraAS : IDisposable
     }
     public void StepCalib(float x, float y, float z, float a, float b, float c)
     {
-            SendCommand($"HE,1,1,{x},{y},{z},{a},{b},{c}");
+        SendCommand($"HE,1,1,{x},{y},{z},{a},{b},{c}");
     }
     public void EndCalib()
     {
-            SendCommand($"HEE,1");
-            this.CalibStep = 1;
-            isCalib = true;
+        SendCommand($"HEE,1");
+        this.CalibStep = 1;
+        isCalib = true;
     }
     public void SGP(int i)
     {
@@ -326,7 +359,7 @@ public class CameraAS : IDisposable
         if (isCalib)
         {
             SendCommand("GS,1");
-            isCalib=false;
+            isCalib = false;
             MessageBox.Show("Calib Hand Eye is running");
         }
         else
@@ -340,24 +373,26 @@ public class CameraAS : IDisposable
             }
         }
     }
+    // FIX Bug D: set nameStation TRƯỚC khi gửi lệnh GCP để tránh race condition
     public void TriggerResult(string s)
     {
-        SendCommand("GCP,1,HOME2D,0,0,0,0,0,0");
         nameStation = s;
+        SendCommand("GCP,1,HOME2D,0,0,0,0,0,0");
     }
     public void ChangeJob(int Idjob)
     {
         SendCommand($"LF{Idjob}_{Idjob}.job");
     }
+    // FIX Bug D: set nameStation TRƯỚC khi gửi lệnh GCP
     public void ChangFearture(string s)
     {
-        SendCommand("GCP,2,HOME2D,0,0,0,0,0,0");
         nameStation = s;
+        SendCommand("GCP,2,HOME2D,0,0,0,0,0,0");
     }
-    public void Reconnect(string IdModel,string IdPLC,int port,string NamePort1,string NamePort2)
+    public void Reconnect(string IdModel, string IdPLC, int port, string NamePort1, string NamePort2)
     {
         _port = port;
-        this.Idmodel= IdModel;
+        this.Idmodel = IdModel;
         this.IdPLC = IdPLC;
         NamePort = NamePort1 + "         " + NamePort2;
         Connect();

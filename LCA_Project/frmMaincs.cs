@@ -1,4 +1,5 @@
-﻿using LCA_Project.Database;
+﻿using Guna.UI2.AnimatorNS;
+using LCA_Project.Database;
 using LCA_Project.Form.Devices.Controllers;
 using LCA_Project.Form.frmAlarm;
 using LCA_Project.Form.Signal;
@@ -228,11 +229,28 @@ namespace LCA_Project
         }
         private async void btnAlarm_Click(object sender, EventArgs e)
         {
+            // BUG 3 FIX: nếu form đã mở thì chỉ BringToFront, không tạo thêm instance
+            if (_frmSignal != null && !_frmSignal.IsDisposed)
+            {
+                _frmSignal.BringToFront();
+                return;
+            }
+
             await ProcessMain.Instance.Initialize();
-            var value = ProcessMain.Instance._Signal.Where(x => x.Key == "LCA").FirstOrDefault();
-            _frmSignal = new frmSignal(value.Value, "LCA");
-            //_frmSignal.StartPosition = FormStartPosition.Manual;
-            //_frmSignal.StartPosition = FormStartPosition.CenterScreen;
+
+            // BUG 2 FIX: key của _Signal = Name từ bảng Controllers trong DB
+            // Nếu DB lưu tên là "LCA" thì khớp; nếu không tìm thấy → log và thoát
+            var kvSignal = ProcessMain.Instance._Signal
+                .Where(x => x.Key == "LCA").FirstOrDefault();
+            if (kvSignal.Value == null)
+            {
+                MessageBox.Show("Không tìm thấy controller 'LCA' trong Signal table.Kiểm tra bảng Controllers trong DB.",
+                    "Signal Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            _frmSignal = new frmSignal(kvSignal.Value, "LCA");
+            _frmSignal.FormClosed += (s, v) => _frmSignal = null;
             _frmSignal.Show();
             _frmSignal.BringToFront();
         }
@@ -257,37 +275,59 @@ namespace LCA_Project
         }
         private void SendDataToPLC(string[] result, string s)
         {
-            if (s == "Station2")
+            // FIX: validate result trước khi parse tránh exception crash silent
+            if (result == null || result.Length < 3)
             {
-                this.plc.WriteInt32("DM720", Int32.Parse(result[0]));
-                this.plc.WriteInt32("DM722", Int32.Parse(result[1]));
-                this.plc.WriteInt32("DM724", Int32.Parse(result[2]));
-                plc.SetBitInWord("MR10200", 1);
-                LogProgram.WriteLog($"{s}  " + $"EndTrigger ");
+                LogProgram.WriteLog($"[SendDataToPLC] {s}: result null hoặc thiếu phần tử (nhận {result?.Length ?? 0})");
+                return;
             }
-            else if (s == "Station1")
+            if (!Int32.TryParse(result[0], out Int32 v0) ||
+                !Int32.TryParse(result[1], out Int32 v1) ||
+                !Int32.TryParse(result[2], out Int32 v2))
             {
-                this.plc.WriteInt32("DM780", Int32.Parse(result[0]));
-                this.plc.WriteInt32("DM782", Int32.Parse(result[1]));
-                this.plc.WriteInt32("DM784", Int32.Parse(result[2]));
-                plc.SetBitInWord("MR10200", 1);
-                LogProgram.WriteLog($"{s}  " + $"EndTrigger ");
+                LogProgram.WriteLog($"[SendDataToPLC] {s}: không parse được result: [{result[0]},{result[1]},{result[2]}]");
+                return;
+            }
+            // FIX: Station4 tường minh thay vì dùng else (tránh ghi nhầm khi station không xác định)
+            if (s == "Station1")
+            {
+                bool ok = this.plc.WriteInt32("DM780", v0)
+                        & this.plc.WriteInt32("DM782", v1)
+                        & this.plc.WriteInt32("DM784", v2);
+                if (ok) plc.SetBitInWord("MR10200", 1);
+                else LogProgram.WriteLog($"[SendDataToPLC] {s}: WriteInt32 thất bại, bỏ qua SetBit");
+                LogProgram.WriteLog($"{s} EndTrigger ok={ok}");
+            }
+            else if (s == "Station2")
+            {
+                bool ok = this.plc.WriteInt32("DM720", v0)
+                        & this.plc.WriteInt32("DM722", v1)
+                        & this.plc.WriteInt32("DM724", v2);
+                if (ok) plc.SetBitInWord("MR10200", 1);
+                else LogProgram.WriteLog($"[SendDataToPLC] {s}: WriteInt32 thất bại, bỏ qua SetBit");
+                LogProgram.WriteLog($"{s} EndTrigger ok={ok}");
             }
             else if (s == "Station3")
             {
-                this.plc.WriteInt32("DM810", Int32.Parse(result[0]));
-                this.plc.WriteInt32("DM812", Int32.Parse(result[1]));
-                this.plc.WriteInt32("DM814", Int32.Parse(result[2]));
-                plc.SetBitInWord("MR10500", 0);
-                LogProgram.WriteLog($"{s}  " + $"EndTrigger ");
+                bool ok = this.plc.WriteInt32("DM810", v0)
+                        & this.plc.WriteInt32("DM812", v1)
+                        & this.plc.WriteInt32("DM814", v2);
+                if (ok) plc.SetBitInWord("MR10500", 0);
+                else LogProgram.WriteLog($"[SendDataToPLC] {s}: WriteInt32 thất bại, bỏ qua SetBit");
+                LogProgram.WriteLog($"{s} EndTrigger ok={ok}");
+            }
+            else if (s == "Station4")
+            {
+                bool ok = this.plc.WriteInt32("DM800", v0)
+                        & this.plc.WriteInt32("DM802", v1)
+                        & this.plc.WriteInt32("DM804", v2);
+                if (ok) plc.SetBitInWord("MR10500", 0);
+                else LogProgram.WriteLog($"[SendDataToPLC] {s}: WriteInt32 thất bại, bỏ qua SetBit");
+                LogProgram.WriteLog($"{s} EndTrigger ok={ok}");
             }
             else
             {
-                this.plc.WriteInt32("DM800", Int32.Parse(result[0]));
-                this.plc.WriteInt32("DM802", Int32.Parse(result[1]));
-                this.plc.WriteInt32("DM804", Int32.Parse(result[2]));
-                plc.SetBitInWord("MR10500", 0);
-                LogProgram.WriteLog($"{s}  " + $"EndTrigger ");
+                LogProgram.WriteLog($"[SendDataToPLC] Station không xác định: '{s}' — bỏ qua");
             }
         }
         private void BtnStart_Click(object sender, EventArgs e)
