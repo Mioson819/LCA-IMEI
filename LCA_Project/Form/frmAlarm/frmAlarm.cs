@@ -19,14 +19,20 @@ namespace LCA_Project.Form.Signal
 {
     public partial class frmAlarm : System.Windows.Forms.Form
     {
+        // PcType: "Nano" → *.log (subfolder năm/tháng)
+        //         "Pamtech" → *.txt (path gốc)
+        // Được set từ ngoài vào (Form1 gọi frmAlarm.PcType = logWatcher.PcType)
+        public string PcType { get; set; } = "Nano";
+        private bool IsNano => string.Equals(PcType, "Nano", StringComparison.OrdinalIgnoreCase);
+
         private string filePattern
         {
             get
             {
-                if (!LogFileWatcher.OffMess) return $"-{DateTime.Now.Year.ToString().Substring(2)}" + "*.txt";
+                if (!IsNano) return $"-{DateTime.Now.Year.ToString().Substring(2)}" + "*.txt";
                 else
                 {
-                    return $"{DateTime.Now.Year.ToString("")}" + "*.log";
+                    return $"{DateTime.Now.Year}" + "*.log";
                 }
             }
         }
@@ -35,8 +41,8 @@ namespace LCA_Project.Form.Signal
             //if (LogFileWatcher.OffMess) return DatabaseControllers.Instance.LoadDataFolder(Model, this.Nametation); 
             //else
             //{
-                 return Path.Combine(DatabaseControllers.Instance.LoadDataFolder(Model, this.Nametation), $"{DateTime.Now.Year.ToString()}", $"{DateTime.Now.Month.ToString("D2")}");
-           // }
+            return Path.Combine(DatabaseControllers.Instance.LoadDataFolder(Model, this.Nametation), $"{DateTime.Now.Year.ToString()}", $"{DateTime.Now.Month.ToString("D2")}");
+            // }
         }
         private string _NameStation { get; set; }
         public string Nametation
@@ -54,17 +60,17 @@ namespace LCA_Project.Form.Signal
         public string Model { get; set; }
         private string folder { get; set; }
         private string label { get; set; }
-        private KeyenceHostLinkTcpClient plc {  get; set; }
+        private KeyenceHostLinkTcpClient plc { get; set; }
         private string nameStation { get; set; }
         private Type type { get; set; }
         private CancellationTokenSource _cts;
-        public frmAlarm(string s, KeyenceHostLinkTcpClient plc,string station)
+        public frmAlarm(string s, KeyenceHostLinkTcpClient plc, string station)
         {
             this.plc = plc;
             InitializeComponent();
             this.label = s;
             this.nameStation = station;
-            this.folder=folder;
+            this.folder = folder;
             Nametation = station;
         }
         private void Label1_Click(object sender, EventArgs e)
@@ -86,7 +92,7 @@ namespace LCA_Project.Form.Signal
             type = typeof(DataforInputResults);
             foreach (System.Windows.Forms.Control control in GetAllControls(this))
             {
-                 if (control is Guna2GradientButton buttonGradion)
+                if (control is Guna2GradientButton buttonGradion)
                 {
                     var prop = type.GetProperty(buttonGradion.Name.ToString().Trim(),
        System.Reflection.BindingFlags.IgnoreCase |
@@ -184,7 +190,8 @@ namespace LCA_Project.Form.Signal
                 }
                 File.Delete(value.FullName);
             }
-            catch(IOException ex) {
+            catch (IOException ex)
+            {
                 MessageBox.Show("Không Thể Xóa Do File Đang Được Truy Cập");
             }
             catch (Exception e)

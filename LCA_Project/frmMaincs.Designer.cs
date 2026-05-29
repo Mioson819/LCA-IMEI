@@ -51,7 +51,6 @@
             this.guna2Transition1 = new Guna.UI2.WinForms.Guna2Transition();
             this.panelContain = new Guna.UI2.WinForms.Guna2Panel();
             this.SWImei = new Guna.UI2.WinForms.Guna2Button();
-            this.btnStatusMes = new Guna.UI2.WinForms.Guna2Button();
             this.label10 = new System.Windows.Forms.Label();
             this.label9 = new System.Windows.Forms.Label();
             this.label8 = new System.Windows.Forms.Label();
@@ -511,7 +510,6 @@
             // panelContain
             // 
             this.panelContain.Controls.Add(this.SWImei);
-            this.panelContain.Controls.Add(this.btnStatusMes);
             this.panelContain.Controls.Add(this.label10);
             this.panelContain.Controls.Add(this.label9);
             this.panelContain.Controls.Add(this.label8);
@@ -557,25 +555,6 @@
             this.SWImei.TabIndex = 29;
             this.SWImei.Text = "Change Mode";
             this.SWImei.Click += new System.EventHandler(this.SWImei_Click);
-            // 
-            // btnStatusMes
-            // 
-            this.guna2Transition1.SetDecoration(this.btnStatusMes, Guna.UI2.AnimatorNS.DecorationType.None);
-            this.btnStatusMes.DisabledState.BorderColor = System.Drawing.Color.DarkGray;
-            this.btnStatusMes.DisabledState.CustomBorderColor = System.Drawing.Color.DarkGray;
-            this.btnStatusMes.DisabledState.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(169)))), ((int)(((byte)(169)))), ((int)(((byte)(169)))));
-            this.btnStatusMes.DisabledState.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(141)))), ((int)(((byte)(141)))), ((int)(((byte)(141)))));
-            this.btnStatusMes.FillColor = System.Drawing.SystemColors.Control;
-            this.btnStatusMes.Font = new System.Drawing.Font("Segoe UI", 18F);
-            this.btnStatusMes.ForeColor = System.Drawing.Color.Red;
-            this.btnStatusMes.ImageSize = new System.Drawing.Size(55, 55);
-            this.btnStatusMes.Location = new System.Drawing.Point(121, 14);
-            this.btnStatusMes.Name = "btnStatusMes";
-            this.btnStatusMes.Size = new System.Drawing.Size(150, 48);
-            this.btnStatusMes.TabIndex = 28;
-            this.btnStatusMes.Text = "Wait Start";
-            this.btnStatusMes.Visible = false;
-            this.btnStatusMes.Click += new System.EventHandler(this.guna2Button2_Click);
             // 
             // label10
             // 
@@ -936,7 +915,6 @@
         private System.Windows.Forms.Label label8;
         private System.Windows.Forms.Label label7;
         private System.Windows.Forms.Label label10;
-        private Guna.UI2.WinForms.Guna2Button btnStatusMes;
         private Guna.UI2.WinForms.Guna2GradientButton btnUser;
         private Guna.UI2.WinForms.Guna2Button SWImei;
     }

@@ -581,30 +581,7 @@ namespace LCA_Project
             }
         }
 
-        private void guna2Button2_Click(object sender, EventArgs e)
-        {
-            if (_form1 != null && _form2 != null && _form3 != null && _form4 != null && _form1.Created && _form2.Created && _form3.Created && _form4.Created && _form1.logWatcher != null && _form2.logWatcher != null && _form3.logWatcher != null && _form4.logWatcher != null)
-            {
-                if (LogFileWatcher.OffMess == false)
-                {
-                    LogFileWatcher.OffMess = true;
-                    //btnStatusMes.ForeColor = System.Drawing.Color.Green;
-                    //btnStatusMes.Text = "PAMTEK";
-                    OnMess?.Invoke(this, EventArgs.Empty);
-                }
-                else
-                {
-                    LogFileWatcher.OffMess = false;
-                    btnStatusMes.ForeColor = System.Drawing.Color.Green;
-                    btnStatusMes.Text = "NANO";
-                    OnMess?.Invoke(this, EventArgs.Empty);
-                }
-            }
-            else
-            {
-                System.Windows.Forms.MessageBox.Show("Please Open All Form");
-            }
-        }
+
         private void guna2Button1_Click(object sender, EventArgs e)
         {
             cbxPort1.Items.Clear();
@@ -733,7 +710,7 @@ namespace LCA_Project
                             SWImei.FillColor = System.Drawing.Color.Red;
                             SWImei.Text = "Mode: LCA Module";
                             modeimei = false;
-                            btnUser.Enabled = false;
+                          
                         }
                         else
                         {

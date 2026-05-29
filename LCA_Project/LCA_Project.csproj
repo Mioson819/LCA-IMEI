@@ -158,7 +158,6 @@
     <Compile Include="Form\frmAlarm\frmLoto.Designer.cs">
       <DependentUpon>frmLoto.cs</DependentUpon>
     </Compile>
-
     <Compile Include="Form\frmAlarm\frmLotoImei.cs">
       <SubType>Form</SubType>
     </Compile>

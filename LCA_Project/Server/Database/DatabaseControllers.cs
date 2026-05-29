@@ -434,6 +434,36 @@ namespace LCA_Project.Database
                 return null;
             }
         }
+        // Đọc PcType ("Nano" hoặc "Pamtech") từ bảng FolderPort
+        // theo NameModel + IdPort (Port1..Port4).
+        // Trả về "Nano" mặc định nếu không tìm thấy.
+        public string GetPcType(string nameModel, string port)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(nameModel) || string.IsNullOrEmpty(port))
+                    return "Nano";
+                using (var con = SqlConnect.GetConnection)
+                {
+                    con.Open();
+                    var cmd = new SqlCommand(
+                        "SELECT PcType FROM FolderPort WHERE NameModel = @NameModel AND IdPort = @Port",
+                        con);
+                    cmd.Parameters.AddWithValue("@NameModel", nameModel);
+                    cmd.Parameters.AddWithValue("@Port", port);
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            string val = reader["PcType"]?.ToString();
+                            return string.IsNullOrEmpty(val) ? "Nano" : val;
+                        }
+                    }
+                }
+            }
+            catch { }
+            return "Nano";
+        }
         public string[] GetnXnY(string nameStation, string model)
         {
             using (var con = SqlConnect.GetConnection)

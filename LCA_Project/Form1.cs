@@ -360,6 +360,9 @@ namespace LCA_Project
                 }
                 this.folder = serverFolder;
                 logWatcher = new LogFileWatcher(serverFolder, tempPath1);
+                // Đọc PcType từ DB (Nano / Pamtech) thay cho OffMess static
+                logWatcher.PcType = DatabaseControllers.Instance.GetPcType(
+                    lblModel.Text?.ToString(), this.Nametation);
                 logWatcher.OnNewLineRead -= HandleLogLine;
                 logWatcher.OnNewLineRead += HandleLogLine;
                 logWatcher.Start();
@@ -374,32 +377,34 @@ namespace LCA_Project
 
         public void OnMess(object sender, EventArgs e)
         {
-            if (logWatcher != null)
+            if (logWatcher == null) return;
+
+            // Cập nhật PcType từ DB mỗi khi OnMess được gọi
+            // (model hoặc port có thể đã thay đổi)
+            logWatcher.PcType = DatabaseControllers.Instance.GetPcType(
+                lblModel.Text?.ToString(), this.Nametation);
+
+            if (logWatcher.PcType == "Nano")
             {
-                if (LogFileWatcher.OffMess)
-                {
-                    var s = DatabaseControllers.Instance.LoadDataFolder(lblModel.Text.ToString(), this.Nametation);
-                    if (s == "")
-                    {
-                        MessageBox.Show($"Đường Dẫn ON MESS {this.Nametation} Chưa Có Trong Cơ Sở Dữ Liệu , Yêu Cầu nhập thêm đường dẫn ON MESS ", "WARNING", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    }
-                    else
-                    {
-                        logWatcher.serverFolder = s;
-                    }
-                }
+                var s = DatabaseControllers.Instance.LoadDataFolder(
+                    lblModel.Text.ToString(), this.Nametation);
+                if (string.IsNullOrEmpty(s))
+                    MessageBox.Show(
+                        $"Đường Dẫn ON MESS {this.Nametation} Chưa Có Trong Cơ Sở Dữ Liệu , Yêu Cầu nhập thêm đường dẫn ON MESS ",
+                        "WARNING", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 else
-                {
-                    var s = DatabaseControllers.Instance.LoadDataFolderPathOFFMESS(lblModel.Text.ToString(), this.Nametation);
-                    if (s == "")
-                    {
-                        MessageBox.Show($"Đường Dẫn ON MESS {this.Nametation} Chưa Có Trong Cơ Sở Dữ Liệu , Yêu Cầu nhập thêm đường dẫn OFF MESS ", "WARNING", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    }
-                    else
-                    {
-                        logWatcher.serverFolder = s;
-                    }
-                }
+                    logWatcher.serverFolder = s;
+            }
+            else  // Pamtech
+            {
+                var s = DatabaseControllers.Instance.LoadDataFolderPathOFFMESS(
+                    lblModel.Text.ToString(), this.Nametation);
+                if (string.IsNullOrEmpty(s))
+                    MessageBox.Show(
+                        $"Đường Dẫn ON MESS {this.Nametation} Chưa Có Trong Cơ Sở Dữ Liệu , Yêu Cầu nhập thêm đường dẫn OFF MESS ",
+                        "WARNING", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                else
+                    logWatcher.serverFolder = s;
             }
         }
 
