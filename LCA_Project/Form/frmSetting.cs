@@ -32,6 +32,7 @@ namespace LCA_Project.Form
             InitializeComponent();
             _namePort = namePort;
             _plc = plc;
+            _lblControl = new PLCLabelControl(_plc, 500);
             lblNamePort.Text = lblNamePort.Text + "  " + NamePort(namePort);
         }
         protected override void OnHandleCreated(EventArgs e)
