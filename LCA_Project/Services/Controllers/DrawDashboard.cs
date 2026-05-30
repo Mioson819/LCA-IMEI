@@ -2,7 +2,7 @@
 using Guna.UI2.WinForms;
 using LCA_Project.Database;
 using LCA_Project.Form.Devices.Controllers;
-using LCA_Project.Form.Resources;
+
 using LCA_Project.Utilities;
 using System;
 using System.Collections.Generic;
@@ -23,8 +23,8 @@ namespace LCA_Project.Services.Controllers
         private Guna2GradientButton btnFix;
         private Guna2GradientButton btnSetting;
         private frmControllersParameter _frmControllersParameter;
-        private FrmSettingController _frmSettingController;
-        private frmResources _frmResources;
+       
+       
         private TypeDatabase _typeDatabase;
         public delegate void sendController(System.Windows.Forms.Control control);
         public event sendController onSendController;
@@ -33,6 +33,10 @@ namespace LCA_Project.Services.Controllers
         private int indexRows { get; set; }
         private int indexCell { get; set; }
         private string _nameDatabase { get; set; }
+
+        // Giá trị hợp lệ cho cột PcType — thêm/bớt ở đây nếu sau này có loại mới
+        private static readonly string[] PcTypeValues = { "Nano", "Pamtech" };
+
         public DrawDashboard(string NameDatabase, Guna2Panel panel)
         {
             CreateDashboard(NameDatabase, panel, null);
@@ -74,14 +78,11 @@ namespace LCA_Project.Services.Controllers
                         {
                             if (ev.RowIndex >= 0 && ev.ColumnIndex == 2)
                             {
-                                _frmResources = new frmResources();
-                                _frmResources.Show();
+                               
+                              
                                 indexRows = ev.RowIndex;
                                 indexCell = ev.ColumnIndex;
-                                _frmResources.onimgselected += (img) =>
-                                {
-                                    dgvtParameter.Rows[indexRows].Cells[indexCell].Value = img;
-                                };
+
                             }
                         };
                         btnSave.Click += sendControls;
@@ -172,11 +173,37 @@ namespace LCA_Project.Services.Controllers
                 dgvtParameter.EditingControlShowing += Changed;
                 dgvtParameter.CellClick += dgvtParameter_CellClick;
             }
+            else if (_typeDatabase == TypeDatabase.ControllerTag)
+            {
+                // PcType cũng xuất hiện trong bảng ControllerTag
+                SetupPcTypeCombo();
+            }
             btnAddRegister.Click += AddRegister;
             btnRemoveRegisters.Click += RemoveRegisters;
             btnSave.Click += SaveDatabase;
         }
-        private void dgvtParameter_CellClick(object sender , DataGridViewCellEventArgs e)
+
+        // ── PcType ComboBox ──────────────────────────────────────────────────────
+        // Áp dụng cho bất kỳ bảng nào có cột "PcType" (FolderPort, ControllerTag)
+        // Gọi sau khi LoadDatabase() đã bind DataSource
+        private void SetupPcTypeCombo()
+        {
+            if (!dgvtParameter.Columns.Contains("PcType")) return;
+
+            int index = dgvtParameter.Columns["PcType"].Index;
+            dgvtParameter.Columns.Remove("PcType");
+
+            var col = new DataGridViewComboBoxColumn();
+            col.Name = "PcType";
+            col.HeaderText = "PcType";
+            col.DataPropertyName = "PcType";
+            col.FlatStyle = FlatStyle.Flat;
+            col.Items.AddRange(PcTypeValues);   // "Nano", "Pamtech"
+
+            dgvtParameter.Columns.Insert(index, col);
+        }
+
+        private void dgvtParameter_CellClick(object sender, DataGridViewCellEventArgs e)
         {
             string colName = dgvtParameter.Columns[dgvtParameter.CurrentCell.ColumnIndex].Name;
             DataGridViewComboBoxCell cell =
@@ -201,17 +228,12 @@ namespace LCA_Project.Services.Controllers
             List<string> list1 = new List<string>(), list2 = new List<string>();
             DataTable dt = dgvtParameter.DataSource as DataTable;
             if (dt == null) return;
-            //if (!dgvtParameter.Columns.Contains("PortLeft"))
-            //    return;
-            // IdPort
             int indexPortLeft = dgvtParameter.Columns["PortLeft"].Index, indexPortRight = dgvtParameter.Columns["PortRight"].Index, indexModelNamePortLeft = dgvtParameter.Columns["ModelNamePortLeft"].Index, indexModelNamePortRight = dgvtParameter.Columns["ModelNamePortRight"].Index, indexIdMODEL = dgvtParameter.Columns["IdModel"].Index;
-            // delete current value
             dgvtParameter.Columns.Remove("PortLeft");
             dgvtParameter.Columns.Remove("PortRight");
             dgvtParameter.Columns.Remove("ModelNamePortLeft");
             dgvtParameter.Columns.Remove("ModelNamePortRight");
             dgvtParameter.Columns.Remove("IdModel");
-            // IdPort
             var col = new DataGridViewComboBoxColumn();
             col.Name = "IdModel";
             col.HeaderText = "IdModel";
@@ -234,12 +256,10 @@ namespace LCA_Project.Services.Controllers
             PortRight.DataPropertyName = "PortRight";
             PortRight.FlatStyle = FlatStyle.Flat;
             PortRight.Items.AddRange("Port2", "Port4");
-            // 
             DatabaseControllers.Instance.LoadDataNameModel3(list1, "Port1");
             DatabaseControllers.Instance.LoadDataNameModel3(list1, "Port2");
             DatabaseControllers.Instance.LoadDataNameModel3(list2, "Port3");
             DatabaseControllers.Instance.LoadDataNameModel3(list2, "Port4");
-            //
             var ModelNamePortLeft = new DataGridViewComboBoxColumn();
             ModelNamePortLeft.Name = "ModelNamePortLeft";
             ModelNamePortLeft.HeaderText = "ModelNamePortLeft";
@@ -266,91 +286,20 @@ namespace LCA_Project.Services.Controllers
         }
         private void Changed(object sender, DataGridViewEditingControlShowingEventArgs e)
         {
-            //if (dgvtParameter.CurrentCell.ColumnIndex == 3)
-            //{
             ComboBox cb = e.Control as ComboBox;
             string columnName = dgvtParameter.Columns[dgvtParameter.CurrentCell.ColumnIndex].Name;
             if (cb != null)
             {
                 if (columnName.IndexOf("ModelName", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
-                    //cb.DrawMode = DrawMode.OwnerDrawFixed;
-                    //cb.DropDownStyle = ComboBoxStyle.DropDownList;
-                    //cb.FlatStyle = FlatStyle.Popup;
-                    //cb.DrawItem -= Combo_DrawItemFixBlack;
-                    //cb.DrawItem += Combo_DrawItemFixBlack;
-                    //cb.DropDown -= ComboDropDownReload;
-                    //cb.DropDown += ComboDropDownReload;
                 }
-                else if(columnName.IndexOf("Port", StringComparison.OrdinalIgnoreCase) >= 0)
+                else if (columnName.IndexOf("Port", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
                     cb.SelectedIndexChanged -= CategoryChanged;
                     cb.SelectedIndexChanged += CategoryChanged;
                 }
             }
-            // }
         }
-        //private void Combo_DrawItemFixBlack(object sender, DrawItemEventArgs e)
-        //{
-        //    ComboBox cb = sender as ComboBox;
-        //    if (e.Index < 0) return;
-        //    bool selected = (e.State & DrawItemState.Selected) == DrawItemState.Selected;
-        //    Color back = selected
-        //        ? Color.FromArgb(241, 84, 127)   
-        //        : Color.White;                   
-        //    Color fore = selected ? Color.White : Color.Black;
-        //    // Vẽ nền
-        //    using (SolidBrush b = new SolidBrush(back))
-        //    {
-        //        e.Graphics.FillRectangle(b, e.Bounds);
-        //    }
-        //    // Vẽ chữ
-        //    string text = cb.Items[e.Index].ToString();
-        //    TextRenderer.DrawText(
-        //        e.Graphics,
-        //        text,
-        //        cb.Font,
-        //        e.Bounds,
-        //        fore,
-        //        TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
-        //    // viền focus
-        //    e.DrawFocusRectangle();
-        //}
-        //private void ComboDropDownReload(object sender, EventArgs e)
-        //{
-        //    ComboBox cb = sender as ComboBox;
-        //    if (cb == null) return;
-        //    string colName = dgvtParameter.Columns[dgvtParameter.CurrentCell.ColumnIndex].Name;
-        //    DataGridViewComboBoxCell cell =
-        //        (DataGridViewComboBoxCell)dgvtParameter.CurrentCell;
-        //    string port = null;
-        //    if (colName == "ModelNamePortLeft")
-        //    {
-        //        port = dgvtParameter.Rows[dgvtParameter.CurrentCell.RowIndex]
-        //                   .Cells["PortLeft"].Value?.ToString();
-        //    }
-        //    else if (colName == "ModelNamePortRight")
-        //    {
-        //        port = dgvtParameter.Rows[dgvtParameter.CurrentCell.RowIndex]
-        //                   .Cells["PortRight"].Value?.ToString();
-        //    }
-        //    if (string.IsNullOrEmpty(port))
-        //        return;
-        //    cell.Items.Clear();
-        //    DatabaseControllers.Instance.LoadDataNameModel2(cell, port);
-        //    cb.Items.Clear();
-        //    foreach (var item in cell.Items)
-        //        cb.Items.Add(item);
-        //    if (cell.Value != null && cb.Items.Contains(cell.Value))
-        //    {
-        //        cb.SelectedItem = cell.Value;
-        //    }
-        //    else
-        //    {
-        //        // Không có → reset
-        //        cb.SelectedIndex = -1;
-        //    }
-        //}
         private void CategoryChanged(object sender, EventArgs e)
         {
             ComboBox cb = sender as ComboBox;
@@ -363,50 +312,39 @@ namespace LCA_Project.Services.Controllers
         {
             DataTable dt = dgvtParameter.DataSource as DataTable;
             if (dt == null) return;
-            //if (!dgvtParameter.Columns.Contains("IdPort"))
-            //    return;
-            // IdPort
             int index = dgvtParameter.Columns["IdPort"].Index;
             int indexnX = dgvtParameter.Columns["nX"].Index;
             int indexnY = dgvtParameter.Columns["nY"].Index;
             int indexnYNG4 = dgvtParameter.Columns["nYNG4"].Index;
             int indexMODEL = dgvtParameter.Columns["IdMODEL"].Index;
-            // delete current alue
             dgvtParameter.Columns.Remove("IdPort");
             dgvtParameter.Columns.Remove("nX");
             dgvtParameter.Columns.Remove("nY");
             dgvtParameter.Columns.Remove("nYNG4");
             dgvtParameter.Columns.Remove("IdMODEL");
-            // IdPort
             var col = new DataGridViewComboBoxColumn();
             col.Name = "IdPort";
             col.HeaderText = "IdPort";
             col.DataPropertyName = "IdPort";
             col.FlatStyle = FlatStyle.Flat;
             col.Items.AddRange("Port1", "Port2", "Port3", "Port4");
-            // value 1 =>100
             dgvtParameter.Columns.Insert(index, col);
-            //
             var numbers = Enumerable.Range(1, 100).ToList();
-            // nX
             var nX = new DataGridViewComboBoxColumn();
             nX.Name = "nX";
             nX.HeaderText = "nX";
             nX.DataPropertyName = "nX";
             nX.FlatStyle = FlatStyle.Flat;
-            // nY
             var nY = new DataGridViewComboBoxColumn();
             nY.Name = "nY";
             nY.HeaderText = "nY";
             nY.DataPropertyName = "nY";
             nY.FlatStyle = FlatStyle.Flat;
-            // NG4
             var NG4 = new DataGridViewComboBoxColumn();
             NG4.Name = "nYNG4";
             NG4.HeaderText = "nYNG4";
             NG4.DataPropertyName = "nYNG4";
             NG4.FlatStyle = FlatStyle.Flat;
-            // IdModel
             var IdModel = new DataGridViewComboBoxColumn();
             IdModel.Name = "IdMODEL";
             IdModel.HeaderText = "IdMODEL";
@@ -423,6 +361,9 @@ namespace LCA_Project.Services.Controllers
             dgvtParameter.Columns.Insert(indexnY, nY);
             dgvtParameter.Columns.Insert(indexnYNG4, NG4);
             dgvtParameter.Columns.Insert(indexMODEL, IdModel);
+
+            // PcType ComboBox — thêm sau khi các cột số đã insert xong
+            SetupPcTypeCombo();
         }
         private void AddRegister(object sender, EventArgs e)
         {

@@ -1,4 +1,5 @@
-﻿using LCA_Project.Database;
+﻿using Guna.UI2.AnimatorNS;
+using LCA_Project.Database;
 using LCA_Project.Form.Devices.Controllers;
 using LCA_Project.Form.frmAlarm;
 using LCA_Project.Form.Signal;
@@ -21,13 +22,13 @@ namespace LCA_Project
     {
         // private CameraAS cam;
         private frmExport _frExport;
-        private Form1 form1;
+        //private Form1 form1;
         public static string[] arraySetiing;
         private static string file_path_setting = System.IO.Path.GetDirectoryName(System.Windows.Forms.Application.ExecutablePath) + @"\setting.txt";
         private frmControllers frmControllersMain;
         private KeyenceHostLinkTcpClient plc;
         public delegate void SendResult(string s);
-        public event SendResult _sendResult;
+       // public event SendResult _sendResult;
         private frmSignal _frmSignal;
         private CameraAS cam1;
         private CameraAS cam2;
@@ -38,7 +39,7 @@ namespace LCA_Project
         private event StartRead sendlabel;
         private event EventHandler OnMess;
         private Action _action;
-        private frmUser _frmUser;
+        //private frmUser _frmUser;
         private Form1 _form1;
         private Form1 _form2;
         private Form1 _form3;
@@ -228,11 +229,28 @@ namespace LCA_Project
         }
         private async void btnAlarm_Click(object sender, EventArgs e)
         {
+            // BUG 3 FIX: nếu form đã mở thì chỉ BringToFront, không tạo thêm instance
+            if (_frmSignal != null && !_frmSignal.IsDisposed)
+            {
+                _frmSignal.BringToFront();
+                return;
+            }
+
             await ProcessMain.Instance.Initialize();
-            var value = ProcessMain.Instance._Signal.Where(x => x.Key == "LCA").FirstOrDefault();
-            _frmSignal = new frmSignal(value.Value, "LCA");
-            //_frmSignal.StartPosition = FormStartPosition.Manual;
-            //_frmSignal.StartPosition = FormStartPosition.CenterScreen;
+
+            // BUG 2 FIX: key của _Signal = Name từ bảng Controllers trong DB
+            // Nếu DB lưu tên là "LCA" thì khớp; nếu không tìm thấy → log và thoát
+            var kvSignal = ProcessMain.Instance._Signal
+                .Where(x => x.Key == "LCA").FirstOrDefault();
+            if (kvSignal.Value == null)
+            {
+                MessageBox.Show("Không tìm thấy controller 'LCA' trong Signal table.Kiểm tra bảng Controllers trong DB.",
+                    "Signal Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            _frmSignal = new frmSignal(kvSignal.Value, "LCA");
+            _frmSignal.FormClosed += (s, v) => _frmSignal = null;
             _frmSignal.Show();
             _frmSignal.BringToFront();
         }
@@ -257,37 +275,59 @@ namespace LCA_Project
         }
         private void SendDataToPLC(string[] result, string s)
         {
-            if (s == "Station2")
+            // FIX: validate result trước khi parse tránh exception crash silent
+            if (result == null || result.Length < 3)
             {
-                this.plc.WriteInt32("DM720", Int32.Parse(result[0]));
-                this.plc.WriteInt32("DM722", Int32.Parse(result[1]));
-                this.plc.WriteInt32("DM724", Int32.Parse(result[2]));
-                plc.SetBitInWord("MR10200", 1);
-                LogProgram.WriteLog($"{s}  " + $"EndTrigger ");
+                LogProgram.WriteLog($"[SendDataToPLC] {s}: result null hoặc thiếu phần tử (nhận {result?.Length ?? 0})");
+                return;
             }
-            else if (s == "Station1")
+            if (!Int32.TryParse(result[0], out Int32 v0) ||
+                !Int32.TryParse(result[1], out Int32 v1) ||
+                !Int32.TryParse(result[2], out Int32 v2))
             {
-                this.plc.WriteInt32("DM780", Int32.Parse(result[0]));
-                this.plc.WriteInt32("DM782", Int32.Parse(result[1]));
-                this.plc.WriteInt32("DM784", Int32.Parse(result[2]));
-                plc.SetBitInWord("MR10200", 1);
-                LogProgram.WriteLog($"{s}  " + $"EndTrigger ");
+                LogProgram.WriteLog($"[SendDataToPLC] {s}: không parse được result: [{result[0]},{result[1]},{result[2]}]");
+                return;
+            }
+            // FIX: Station4 tường minh thay vì dùng else (tránh ghi nhầm khi station không xác định)
+            if (s == "Station1")
+            {
+                bool ok = this.plc.WriteInt32("DM780", v0)
+                        & this.plc.WriteInt32("DM782", v1)
+                        & this.plc.WriteInt32("DM784", v2);
+                if (ok) plc.SetBitInWord("MR10200", 1);
+                else LogProgram.WriteLog($"[SendDataToPLC] {s}: WriteInt32 thất bại, bỏ qua SetBit");
+                LogProgram.WriteLog($"{s} EndTrigger ok={ok}");
+            }
+            else if (s == "Station2")
+            {
+                bool ok = this.plc.WriteInt32("DM720", v0)
+                        & this.plc.WriteInt32("DM722", v1)
+                        & this.plc.WriteInt32("DM724", v2);
+                if (ok) plc.SetBitInWord("MR10200", 1);
+                else LogProgram.WriteLog($"[SendDataToPLC] {s}: WriteInt32 thất bại, bỏ qua SetBit");
+                LogProgram.WriteLog($"{s} EndTrigger ok={ok}");
             }
             else if (s == "Station3")
             {
-                this.plc.WriteInt32("DM810", Int32.Parse(result[0]));
-                this.plc.WriteInt32("DM812", Int32.Parse(result[1]));
-                this.plc.WriteInt32("DM814", Int32.Parse(result[2]));
-                plc.SetBitInWord("MR10500", 0);
-                LogProgram.WriteLog($"{s}  " + $"EndTrigger ");
+                bool ok = this.plc.WriteInt32("DM810", v0)
+                        & this.plc.WriteInt32("DM812", v1)
+                        & this.plc.WriteInt32("DM814", v2);
+                if (ok) plc.SetBitInWord("MR10500", 0);
+                else LogProgram.WriteLog($"[SendDataToPLC] {s}: WriteInt32 thất bại, bỏ qua SetBit");
+                LogProgram.WriteLog($"{s} EndTrigger ok={ok}");
+            }
+            else if (s == "Station4")
+            {
+                bool ok = this.plc.WriteInt32("DM800", v0)
+                        & this.plc.WriteInt32("DM802", v1)
+                        & this.plc.WriteInt32("DM804", v2);
+                if (ok) plc.SetBitInWord("MR10500", 0);
+                else LogProgram.WriteLog($"[SendDataToPLC] {s}: WriteInt32 thất bại, bỏ qua SetBit");
+                LogProgram.WriteLog($"{s} EndTrigger ok={ok}");
             }
             else
             {
-                this.plc.WriteInt32("DM800", Int32.Parse(result[0]));
-                this.plc.WriteInt32("DM802", Int32.Parse(result[1]));
-                this.plc.WriteInt32("DM804", Int32.Parse(result[2]));
-                plc.SetBitInWord("MR10500", 0);
-                LogProgram.WriteLog($"{s}  " + $"EndTrigger ");
+                LogProgram.WriteLog($"[SendDataToPLC] Station không xác định: '{s}' — bỏ qua");
             }
         }
         private void BtnStart_Click(object sender, EventArgs e)
@@ -433,105 +473,48 @@ namespace LCA_Project
                 }
                 if (_form1 == null || _form1.IsDisposed)
                 {
+                    // Xóa handler của instance CŨ (đã dispose) trước khi tạo instance mới.
+                    // Nếu không làm bước này, mỗi lần reopen sẽ tích lũy thêm 1 handler ghost
+                    // → khi btnStart invoke _startRead, form đã dispose vẫn được gọi → crash.
+                    UnsubscribeForm(_form1);
                     this._form1 = new Form1(plc, "Station1", 1, cbxPort1.Text?.ToString(), int.Parse(s1[0]), int.Parse(s1[1]), int.Parse(s1[2]), cam1);
                     this._form1.StartPosition = FormStartPosition.Manual;
                     this._form1.Bounds = new System.Drawing.Rectangle(work.Left, work.Top, W, H);
+                    SubscribeForm(_form1);
                     _form1.Show();
-                    _form1._sendName -= StartSend;
-                    _form1._sendName += StartSend;
-                    sendlabel -= _form1.UpdateModel;
-                    sendlabel += _form1.UpdateModel;
-                    _startRead -= _form1.StartRead;
-                    _startRead += _form1.StartRead;
-                    _stopRead -= _form1.StopRead;
-                    _stopRead += _form1.StopRead;
-                    OnMess -= _form1.OnMess;
-                    OnMess += _form1.OnMess;
-                    _frExport.Reset -= _form1.Reset;
-                    _frExport.Reset += _form1.Reset;
-                    _form1.FormClosed += (s, v) =>
-                    {
-                        btnStart.Enabled = false;
-                        btnStart.ForeColor = System.Drawing.Color.Yellow;
-                    };
                     await Task.Delay(500);
                 }
                 //-----------------------------------------------------------------------------------------------------------------------
                 if (_form2 == null || _form2.IsDisposed)
                 {
+                    UnsubscribeForm(_form2);
                     _form2 = new Form1(plc, "Station2", 0, cbxPort2.Text?.ToString(), int.Parse(s2[0]), int.Parse(s2[1]), int.Parse(s2[2]), cam1);
                     this._form2.StartPosition = FormStartPosition.Manual;
                     this._form2.Bounds = new System.Drawing.Rectangle(work.Left + W, work.Top, W, H);
+                    SubscribeForm(_form2);
                     _form2.Show();
-                    _form2._sendName -= StartSend;
-                    _form2._sendName += StartSend;
-                    sendlabel -= _form2.UpdateModel;
-                    sendlabel += _form2.UpdateModel;
-                    _startRead -= _form2.StartRead;
-                    _startRead += _form2.StartRead;
-                    _stopRead -= _form2.StopRead;
-                    _stopRead += _form2.StopRead;
-                    OnMess -= _form2.OnMess;
-                    OnMess += _form2.OnMess;
-                    _frExport.Reset -= _form2.Reset;
-                    _frExport.Reset += _form2.Reset;
-                    _form2.FormClosed += (s, v) =>
-                    {
-                        btnStart.Enabled = false;
-                        btnStart.ForeColor = System.Drawing.Color.Yellow;
-                    };
                     await Task.Delay(500);
                 }
                 //-----------------------------------------------------------------------------------------------------------------------
                 if (_form3 == null || _form3.IsDisposed)
                 {
+                    UnsubscribeForm(_form3);
                     _form3 = new Form1(plc, "Station3", 1, cbxPort3.Text?.ToString(), int.Parse(s3[0]), int.Parse(s3[1]), int.Parse(s3[2]), cam2);
                     this._form3.StartPosition = FormStartPosition.Manual;
                     this._form3.Bounds = new System.Drawing.Rectangle(work.Left, work.Top + H, W, H);
+                    SubscribeForm(_form3);
                     _form3.Show();
-                    _form3._sendName -= StartSend;
-                    _form3._sendName += StartSend;
-                    sendlabel -= _form3.UpdateModel;
-                    sendlabel += _form3.UpdateModel;
-                    _startRead -= _form3.StartRead;
-                    _startRead += _form3.StartRead;
-                    _stopRead -= _form3.StopRead;
-                    _stopRead += _form3.StopRead;
-                    OnMess -= _form3.OnMess;
-                    OnMess += _form3.OnMess;
-                    _frExport.Reset -= _form3.Reset;
-                    _frExport.Reset += _form3.Reset;
-                    _form3.FormClosed += (s, v) =>
-                    {
-                        btnStart.Enabled = false;
-                        btnStart.ForeColor = System.Drawing.Color.Yellow;
-                    };
                     await Task.Delay(500);
                 }
                 //-----------------------------------------------------------------------------------------------------------------------
                 if (_form4 == null || _form4.IsDisposed)
                 {
+                    UnsubscribeForm(_form4);
                     _form4 = new Form1(plc, "Station4", 0, cbxPort4.Text?.ToString(), int.Parse(s4[0]), int.Parse(s4[1]), int.Parse(s4[2]), cam2);
                     this._form4.StartPosition = FormStartPosition.Manual;
                     this._form4.Bounds = new System.Drawing.Rectangle(work.Left + W, work.Top + H, W, H);
+                    SubscribeForm(_form4);
                     _form4.Show();
-                    _form4._sendName -= StartSend;
-                    _form4._sendName += StartSend;
-                    sendlabel -= _form4.UpdateModel;
-                    sendlabel += _form4.UpdateModel;
-                    _startRead -= _form4.StartRead;
-                    _startRead += _form4.StartRead;
-                    _stopRead -= _form4.StopRead;
-                    _stopRead += _form4.StopRead;
-                    OnMess -= _form4.OnMess;
-                    OnMess += _form4.OnMess;
-                    _frExport.Reset -= _form4.Reset;
-                    _frExport.Reset += _form4.Reset;
-                    _form4.FormClosed += (s, v) =>
-                    {
-                        btnStart.Enabled = false;
-                        btnStart.ForeColor = System.Drawing.Color.Yellow;
-                    };
                 }
                 btnStart.Enabled = true;
             }
@@ -541,30 +524,7 @@ namespace LCA_Project
             }
         }
 
-        private void guna2Button2_Click(object sender, EventArgs e)
-        {
-            if (_form1 != null && _form2 != null && _form3 != null && _form4 != null && _form1.Created && _form2.Created && _form3.Created && _form4.Created && _form1.logWatcher != null && _form2.logWatcher != null && _form3.logWatcher != null && _form4.logWatcher != null)
-            {
-                if (LogFileWatcher.OffMess == false)
-                {
-                    LogFileWatcher.OffMess = true;
-                    //btnStatusMes.ForeColor = System.Drawing.Color.Green;
-                    //btnStatusMes.Text = "PAMTEK";
-                    OnMess?.Invoke(this, EventArgs.Empty);
-                }
-                else
-                {
-                    LogFileWatcher.OffMess = false;
-                    btnStatusMes.ForeColor = System.Drawing.Color.Green;
-                    btnStatusMes.Text = "NANO";
-                    OnMess?.Invoke(this, EventArgs.Empty);
-                }
-            }
-            else
-            {
-                System.Windows.Forms.MessageBox.Show("Please Open All Form");
-            }
-        }
+
         private void guna2Button1_Click(object sender, EventArgs e)
         {
             cbxPort1.Items.Clear();
@@ -621,6 +581,42 @@ namespace LCA_Project
         {
             if (form == null || form.IsDisposed) return;
             try { form.Close(); } catch { }
+        }
+
+        // Xóa TẤT CẢ handler của instance cũ khỏi các multicast delegate.
+        // Phải dùng đúng instance cũ (trước khi gán lại _formX) để -= hoạt động đúng.
+        private void UnsubscribeForm(Form1 form)
+        {
+            if (form == null) return;
+            try { form._sendName -= StartSend; } catch { }
+            try { sendlabel -= form.UpdateModel; } catch { }
+            try { _startRead -= form.StartRead; } catch { }
+            try { _stopRead -= form.StopRead; } catch { }
+            try { OnMess -= form.OnMess; } catch { }
+            try { _frExport.Reset -= form.Reset; } catch { }
+        }
+
+        // Đăng ký handler cho instance mới. FormClosed dùng lambda không tích lũy
+        // vì mỗi lần tạo form mới là một lambda hoàn toàn mới.
+        private void SubscribeForm(Form1 form)
+        {
+            form._sendName -= StartSend;
+            form._sendName += StartSend;
+            sendlabel -= form.UpdateModel;
+            sendlabel += form.UpdateModel;
+            _startRead -= form.StartRead;
+            _startRead += form.StartRead;
+            _stopRead -= form.StopRead;
+            _stopRead += form.StopRead;
+            OnMess -= form.OnMess;
+            OnMess += form.OnMess;
+            _frExport.Reset -= form.Reset;
+            _frExport.Reset += form.Reset;
+            form.FormClosed += (s, v) =>
+            {
+                btnStart.Enabled = false;
+                btnStart.ForeColor = System.Drawing.Color.Yellow;
+            };
         }
 
         private void SWImei_Click(object sender, EventArgs e)
@@ -693,7 +689,7 @@ namespace LCA_Project
                             SWImei.FillColor = System.Drawing.Color.Red;
                             SWImei.Text = "Mode: LCA Module";
                             modeimei = false;
-                            btnUser.Enabled = false;
+                          
                         }
                         else
                         {

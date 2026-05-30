@@ -14,8 +14,8 @@ namespace LCA_Project.Form.frmAlarm
 {
     public partial class frmUser : System.Windows.Forms.Form
     {
-        private KeyenceHostLinkTcpClient _plc;
-        private string Address;
+        //private KeyenceHostLinkTcpClient _plc;
+       // private string Address;
         public  Action<string> _user; 
         public frmUser()
         {

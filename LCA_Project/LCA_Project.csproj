@@ -125,27 +125,6 @@
     <Reference Include="WindowsFormsIntegration" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Form\Devices\Cameras\frmTeachingCamera.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Form\Devices\Cameras\frmTeachingCamera.Designer.cs">
-      <DependentUpon>frmTeachingCamera.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Form\Devices\Controllers\frmSekectPos.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Form\Devices\Controllers\frmSekectPos.Designer.cs">
-      <DependentUpon>frmSekectPos.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Form\Devices\Controllers\frmSettingControlller.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Form\Devices\Controllers\frmSettingControlller.Designer.cs">
-      <DependentUpon>frmSettingControlller.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Form\Devices\Controllers\Resources\frmResources.cs">
-      <SubType>Form</SubType>
-    </Compile>
     <Compile Include="Form\frmAlarm\frmAlarm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -158,7 +137,6 @@
     <Compile Include="Form\frmAlarm\frmLoto.Designer.cs">
       <DependentUpon>frmLoto.cs</DependentUpon>
     </Compile>
-
     <Compile Include="Form\frmAlarm\frmLotoImei.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -200,18 +178,6 @@
     </Compile>
     <Compile Include="Form\Signal\frmSignal.Designer.cs">
       <DependentUpon>frmSignal.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Form\Teaching\frmCurPos.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Form\Teaching\frmCurPos.Designer.cs">
-      <DependentUpon>frmCurPos.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Form\Teaching\frmTeaching.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Form\Teaching\frmTeaching.Designer.cs">
-      <DependentUpon>frmTeaching.cs</DependentUpon>
     </Compile>
     <Compile Include="Form\Teaching\frmTeaching2.cs">
       <SubType>Form</SubType>
@@ -279,23 +245,11 @@
     <EmbeddedResource Include="Form1.resx">
       <DependentUpon>Form1.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="Form\Devices\Cameras\frmTeachingCamera.resx">
-      <DependentUpon>frmTeachingCamera.cs</DependentUpon>
-    </EmbeddedResource>
     <EmbeddedResource Include="Form\Devices\Controllers\frmControllers.resx">
       <DependentUpon>frmControllers.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Form\Devices\Controllers\frmControllersParameter.resx">
       <DependentUpon>frmControllersParameter.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Form\Devices\Controllers\frmSekectPos.resx">
-      <DependentUpon>frmSekectPos.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Form\Devices\Controllers\frmSettingControlller.resx">
-      <DependentUpon>frmSettingControlller.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Form\Devices\Controllers\Resources\frmResources.resx">
-      <DependentUpon>frmResources.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Form\frmAlarm\frmAlarm.resx">
       <DependentUpon>frmAlarm.cs</DependentUpon>
@@ -320,13 +274,6 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Form\Signal\frmSignal.resx">
       <DependentUpon>frmSignal.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Form\Teaching\frmCurPos.resx">
-      <DependentUpon>frmCurPos.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Form\Teaching\frmTeaching.resx">
-      <DependentUpon>frmTeaching.cs</DependentUpon>
-      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="Form\Teaching\frmTeaching2.resx">
       <DependentUpon>frmTeaching2.cs</DependentUpon>
@@ -504,6 +451,10 @@
     <None Include="Resources\icons8-wrench-50.png" />
     <None Include="Resources\icons8-wrench-50-2.png" />
     <None Include="Resources\icons8-bell-48.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Form\Devices\Cameras\" />
+    <Folder Include="Form\Devices\Controllers\Resources\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

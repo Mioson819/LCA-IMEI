@@ -4,11 +4,11 @@ using Guna.UI2.AnimatorNS;
 using Guna.UI2.WinForms;
 using LCA_Project.Database;
 using LCA_Project.Form;
-using LCA_Project.Form.Devices.Cameras;
+
 using LCA_Project.Form.Devices.Controllers;
 using LCA_Project.Form.frmAlarm;
 using LCA_Project.Form.frmResult;
-using LCA_Project.Form.Resources;
+
 using LCA_Project.Form.Signal;
 using LCA_Project.Form.Teaching;
 using LCA_Project.Form.TesterComunication;
@@ -32,21 +32,17 @@ namespace LCA_Project
     {
         // ====== Forms / UI ======
         private frmOldResult _frmOldResult;
-        private Guna2Transition transition;
-        private frmControllersParameter frmControllers;
+        //private Guna2Transition transition;
+        //private frmControllersParameter frmControllers;
         private frmControllers frmControllersMain;
-        private frmMultiSignal frmMultiSignal;
-        private frmResources frmResources;
-        private FrmSettingController frmSettingController;
+        //private frmMultiSignal frmMultiSignal;
+     
+        //private FrmSettingController frmSettingController;
         private ucButtonDisplayGrid<DataforUnload> _Unload;
         private ucButtonDisplayGrid<Dataforload> _Load;
         private ucButtonDisplayGrid<DataforloadImei> _Load2;
         private ucButtonDisplayGrid<DataforNG4> _NG4;
-        private CameraAS cam;
-        private frmTeaching frmTeaching;
-        private frmTeachingCamera frmTeachingCamera;
-        private frmCurPos _frmCurPos;
-        private frmSekectPos _frmSelected;
+        //private CameraAS cam;
         private frmAlarm _frmAlarm;
         private frmControl _frmControl;           // frmControl đang mở (nếu có)
         private KeyenceHostLinkTcpClient plc;
@@ -203,10 +199,10 @@ namespace LCA_Project
             get { return _NameStation; }
             set
             {
-                if (value == "Station1") _NameStation = "PORT1";
-                else if (value == "Station2") _NameStation = "PORT2";
-                else if (value == "Station3") _NameStation = "PORT3";
-                else if (value == "Station4") _NameStation = "PORT4";
+                if (value == "Station1") _NameStation = "Port1";
+                else if (value == "Station2") _NameStation = "Port2";
+                else if (value == "Station3") _NameStation = "Port3";
+                else if (value == "Station4") _NameStation = "Port4";
                 else _NameStation = value;
             }
         }
@@ -360,6 +356,9 @@ namespace LCA_Project
                 }
                 this.folder = serverFolder;
                 logWatcher = new LogFileWatcher(serverFolder, tempPath1);
+                // Đọc PcType từ DB (Nano / Pamtech) thay cho OffMess static
+                logWatcher.PcType = DatabaseControllers.Instance.GetPcType(
+                    lblModel.Text?.ToString(), this.Nametation);
                 logWatcher.OnNewLineRead -= HandleLogLine;
                 logWatcher.OnNewLineRead += HandleLogLine;
                 logWatcher.Start();
@@ -374,32 +373,34 @@ namespace LCA_Project
 
         public void OnMess(object sender, EventArgs e)
         {
-            if (logWatcher != null)
+            if (logWatcher == null) return;
+
+            // Cập nhật PcType từ DB mỗi khi OnMess được gọi
+            // (model hoặc port có thể đã thay đổi)
+            logWatcher.PcType = DatabaseControllers.Instance.GetPcType(
+                lblModel.Text?.ToString(), this.Nametation);
+
+            if (logWatcher.PcType == "Nano")
             {
-                if (LogFileWatcher.OffMess)
-                {
-                    var s = DatabaseControllers.Instance.LoadDataFolder(lblModel.Text.ToString(), this.Nametation);
-                    if (s == "")
-                    {
-                        MessageBox.Show($"Đường Dẫn ON MESS {this.Nametation} Chưa Có Trong Cơ Sở Dữ Liệu , Yêu Cầu nhập thêm đường dẫn ON MESS ", "WARNING", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    }
-                    else
-                    {
-                        logWatcher.serverFolder = s;
-                    }
-                }
+                var s = DatabaseControllers.Instance.LoadDataFolder(
+                    lblModel.Text.ToString(), this.Nametation);
+                if (string.IsNullOrEmpty(s))
+                    MessageBox.Show(
+                        $"Đường Dẫn ON MESS {this.Nametation} Chưa Có Trong Cơ Sở Dữ Liệu , Yêu Cầu nhập thêm đường dẫn ON MESS ",
+                        "WARNING", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 else
-                {
-                    var s = DatabaseControllers.Instance.LoadDataFolderPathOFFMESS(lblModel.Text.ToString(), this.Nametation);
-                    if (s == "")
-                    {
-                        MessageBox.Show($"Đường Dẫn ON MESS {this.Nametation} Chưa Có Trong Cơ Sở Dữ Liệu , Yêu Cầu nhập thêm đường dẫn OFF MESS ", "WARNING", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    }
-                    else
-                    {
-                        logWatcher.serverFolder = s;
-                    }
-                }
+                    logWatcher.serverFolder = s;
+            }
+            else  // Pamtech
+            {
+                var s = DatabaseControllers.Instance.LoadDataFolderPathOFFMESS(
+                    lblModel.Text.ToString(), this.Nametation);
+                if (string.IsNullOrEmpty(s))
+                    MessageBox.Show(
+                        $"Đường Dẫn ON MESS {this.Nametation} Chưa Có Trong Cơ Sở Dữ Liệu , Yêu Cầu nhập thêm đường dẫn OFF MESS ",
+                        "WARNING", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                else
+                    logWatcher.serverFolder = s;
             }
         }
 
@@ -448,7 +449,15 @@ namespace LCA_Project
             }));
 
             CountDelete++;
-            this.plc.SetBitInWord(this._ReStartNoData.Split('.')[0], int.Parse(this._ReStartNoData.Split('.')[1]));
+            // FIX: guard null/_ReStartNoData trước khi Split để tránh NullReferenceException / FormatException
+            if (!string.IsNullOrWhiteSpace(this._ReStartNoData) && this._ReStartNoData.Contains('.'))
+            {
+                var _rsParts = this._ReStartNoData.Split('.');
+                if (_rsParts.Length >= 2 && int.TryParse(_rsParts[1], out int _rsBit))
+                    this.plc.SetBitInWord(_rsParts[0], _rsBit);
+                else
+                    LogProgram.WriteLog("HandleLogLine: _ReStartNoData format sai: " + this._ReStartNoData, this.Nametation);
+            }
         }
 
         private void ReadStatus()
@@ -549,6 +558,7 @@ namespace LCA_Project
                             _frmAlarm = new frmAlarm(s, this.plc, this.nameStation);
                             _frmAlarm.Location = new Point(this.Location.X, this.Location.Y);
                             _frmAlarm.Model = lblModel.Text.ToString();
+                            _frmAlarm.PcType = logWatcher?.PcType ?? "Nano";
                             _frmAlarm.Show();
                         }));
                         LogProgram.MesWriteLog("Alarm: " + s, this.Nametation);
@@ -1065,11 +1075,6 @@ namespace LCA_Project
             frmControllersMain.Show();
         }
 
-        private void guna2ImageButton3_Click(object sender, EventArgs e)
-        {
-            frmResources = new frmResources();
-            frmResources.Show();
-        }
 
         private void guna2GradientButton14_Click(object sender, EventArgs e)
         {
@@ -1167,23 +1172,10 @@ namespace LCA_Project
             }
         }
 
-        private void guna2GradientButton1_Click(object sender, EventArgs e)
-        {
-            frmTeachingCamera = new frmTeachingCamera();
-            frmTeachingCamera.Show();
-        }
 
-        private void Guna2GradientButton21_Click(object sender, EventArgs e, int i)
-        {
-            _frmCurPos = new frmCurPos(this.nameStation, this.plc);
-            _frmCurPos.Show();
-        }
 
-        private void guna2GradientButton21_Click(object sender, EventArgs e)
-        {
-            _frmCurPos = new frmCurPos(this.nameStation, this.plc);
-            _frmCurPos.Show();
-        }
+
+
 
         // ====== ChangeModeTrayInput: toggle bit PLC rồi đóng form ======
         private async void ChangeModeTrayInput_Click(object sender, EventArgs e)
@@ -1428,7 +1420,7 @@ namespace LCA_Project
                     {
                         LogProgram.WriteLog("StartTrigger read error: " + ex, this.Nametation);
                     }
-                    await Task.Delay(300);
+                    await Task.Delay(400);
                 }
             }, _cts.Token);
         }

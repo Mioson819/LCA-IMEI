@@ -1,7 +1,6 @@
 ﻿using System;
 using System.ComponentModel;
 using System.Net.Sockets;
-using System.Runtime.Serialization.Formatters;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -11,17 +10,16 @@ namespace Project_Visionpro.Program.PLC
     public class KeyenceHostLinkTcpClient : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler PropertyChanged;
-        private object _lock = new object();
-        private object _lockSETBIT = new object();
-        private object _lockRESETBIT = new object();
-        private object _lockWrite = new object();
-        private object _lockRead = new object();
-        private object _lockRead32 = new object();
-        private object _lockWrite32 = new object();
-        private bool _isConnected = false;
-        private object _lockReadS16 = new object();
-        private object _lockWriteS16 = new object();
-        private object _lockReadBit = new object();
+        // FIX PLC-1/PLC-3: dùng một lock duy nhất cho toàn bộ TCP I/O
+        // Thay vì nhiều lock riêng dễ gây deadlock và race, một _ioLock serialize
+        // tất cả Send/Receive trên stream. SetBitInWord/ResetBitInWord (RMW) cũng
+        // dùng chính lock này để toàn bộ chuỗi Read→OR/AND→Write là atomic.
+        private readonly object _ioLock = new object();
+        private volatile bool _isConnected = false;
+        private volatile bool _isSessionStarted = false;
+        // Chống timer-reset liên tiếp khi 4 Form1 đều báo lỗi cùng lúc:
+        // chỉ khởi động timer reconnect một lần cho đến khi reconnect thành công.
+        private bool _reconnectPending = false;
         protected virtual void PropertyChangedEvent(string propertyName)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
@@ -32,7 +30,11 @@ namespace Project_Visionpro.Program.PLC
         private int _port;
         private System.Timers.Timer _timer = new System.Timers.Timer();
         private event EventHandler _reconnect;
-        public bool IsSessionStarted { get; private set; } = true;
+        public bool IsSessionStarted
+        {
+            get { return _isSessionStarted; }
+            private set { _isSessionStarted = value; }
+        }
         public KeyenceHostLinkTcpClient(string ipAddress, int port)
         {
             _ip = ipAddress;
@@ -45,15 +47,20 @@ namespace Project_Visionpro.Program.PLC
             try
             {
                 IsSessionStarted = true;
-                _client = new TcpClient(_ip, _port);
+                _client = new TcpClient();
+                // FIX PLC-3: đặt timeout cho kết nối và đọc để tránh treo thread vô hạn
+                _client.SendTimeout = 2000;
+                _client.ReceiveTimeout = 2000;
+                _client.Connect(_ip, _port);
                 _stream = _client.GetStream();
+                _stream.ReadTimeout = 2000;
+                _stream.WriteTimeout = 2000;
             }
             catch (Exception ex)
             {
+                IsSessionStarted = false;
                 PropertyChangedEvent($"{Tcpstatus.disconnected}");
-                Console.WriteLine($"[HostLinkTCP] Connection failed: {ex.Message}");
-                //   LogProgram.WriteLog($"[HostLinkTCP] Connection failed: {ex.Message}");
-                //  MessageBox.Show($"Lỗi kết nối đến PLC tại {_ip}:{_port} - {ex.Message}", "PLC Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                LogProgram.WriteLog($"[HostLinkTCP] Connection failed: {ex.Message}");
             }
         }
         public void Close()
@@ -64,38 +71,41 @@ namespace Project_Visionpro.Program.PLC
             IsSessionStarted = false;
             LogProgram.WriteLog($"[HostLinkTCP] Disconnected from {_ip}:{_port}");
         }
+        // FIX PLC-1/PLC-3: SendCommand KHÔNG giữ lock — caller phải giữ _ioLock
+        // Điều này cho phép SetBitInWord (RMW) gọi SendCommand nhiều lần trong 1 lock
+        private string SendCommandUnlocked(string command)
+        {
+            if (!IsSessionStarted || _stream == null)
+                return "EX:Client is not connected";
+            try
+            {
+                string fullCommand = command.Trim() + "\r";
+                byte[] sendBytes = Encoding.ASCII.GetBytes(fullCommand);
+                _stream.Write(sendBytes, 0, sendBytes.Length);
+                byte[] buffer = new byte[256];
+                int bytesRead = _stream.Read(buffer, 0, buffer.Length);
+                string raw = Encoding.ASCII.GetString(buffer, 0, bytesRead).Trim();
+                var parts = raw.Split(new[] { '\r', '\n', ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length == 0) return "EX:NO RESPONSE";
+                string status = parts[0];
+                string data = parts.Length > 1 ? parts[1] : null;
+                if (data == null) return status;
+                return data;
+            }
+            catch (Exception ex)
+            {
+                LogProgram.WriteLog($"[HostLinkTCP] Error sending command: {ex.Message}");
+                IsSessionStarted = false;
+                PropertyChangedEvent($"{Tcpstatus.disconnected}");
+                return $"EX:{ex.Message}";
+            }
+        }
+        // API công khai: acquire lock rồi gọi unlocked variant
         public string SendCommand(string command)
         {
-            lock (_lock)
+            lock (_ioLock)
             {
-                if (!IsSessionStarted || _stream == null)
-                {
-                    return "EX:Client is not connected";
-                }
-                try
-                {
-                    string fullCommand = command.Trim() + "\r";
-                    byte[] sendBytes = Encoding.ASCII.GetBytes(fullCommand);
-                    _stream.Write(sendBytes, 0, sendBytes.Length);
-                    byte[] buffer = new byte[256];
-                    int bytesRead = _stream.Read(buffer, 0, buffer.Length);
-                    string raw = Encoding.ASCII.GetString(buffer, 0, bytesRead).Trim();
-                    // Tách phản hồi thành từng phần (status và data nếu có)
-                    var parts = raw.Split(new[] { '\r', '\n', ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                    if (parts.Length == 0) return "EX:NO RESPONSE";
-                    string status = parts[0];
-                    string data = parts.Length > 1 ? parts[1] : null;
-                    // Nếu không có data, nhưng status OK thì vẫn trả OK, không log lỗi
-                    if (data == null) return status;
-                    return data;
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[HostLinkTCP] Error sending command: {ex.Message}");
-                    IsSessionStarted = false;
-                    PropertyChangedEvent($"{Tcpstatus.disconnected}");
-                    return $"EX:{ex.Message}";
-                }
+                return SendCommandUnlocked(command);
             }
         }
         private TcpReceiveCMD ParseResponse(string response)
@@ -113,254 +123,190 @@ namespace Project_Visionpro.Program.PLC
             IsSessionStarted = result == TcpReceiveCMD.OK;
             return IsSessionStarted;
         }
+        // Gọi bên trong _ioLock. Chỉ khởi động timer lần đầu để tránh reset đếm ngược
+        // mỗi khi một trong 4 Form1 gặp lỗi liên tiếp → reconnect bị trì hoãn vô hạn.
+        private void StartReconnectIfNeeded()
+        {
+            if (_isConnected && !_reconnectPending)
+            {
+                _reconnectPending = true;
+                _timer.Elapsed -= Reconnect;
+                _timer.Elapsed += Reconnect;
+                _timer.Start();
+            }
+        }
+
+        private void MarkConnected()
+        {
+            _reconnectPending = false;
+            _isConnected = true;
+            _timer.Elapsed -= Reconnect;
+            _timer.Stop();
+            PropertyChangedEvent($"{Tcpstatus.connected}");
+            IsSessionStarted = true;
+        }
+
+        // FIX PLC-2: helper xử lý response disconnect/reconnect — dùng chung cho tất cả Write
+        private void HandleWriteResponse(string response)
+        {
+            if (response.Contains("not") || response.Contains("EX"))
+            {
+                PropertyChangedEvent($"{Tcpstatus.disconnected}");
+                IsSessionStarted = false;
+                StartReconnectIfNeeded();
+            }
+            else
+            {
+                MarkConnected();
+            }
+        }
         public bool WriteUInt16(string address, ushort value)
         {
-            lock (_lockWrite)
+            lock (_ioLock)
             {
-                string response = SendCommand($"WR {address}.U {value}");
-                if (response.Contains("not") || response.Contains("EX"))
-                {
-                    PropertyChangedEvent($"{Tcpstatus.disconnected}");
-                    IsSessionStarted = false;
-                    if (_isConnected)
-                    {
-                        _timer.Elapsed -= Reconnect;
-                        _timer.Elapsed += Reconnect;
-                        _timer.Start();
-                    }
-                }
-                else
-                {
-                    _isConnected = true;
-                    _timer.Elapsed -= Reconnect;
-                    _timer.Stop();
-                    PropertyChangedEvent($"{Tcpstatus.connected}");
-                    IsSessionStarted = true;
-                }
+                string response = SendCommandUnlocked($"WR {address}.U {value}");
+                HandleWriteResponse(response);
                 return ParseResponse(response) == TcpReceiveCMD.OK;
             }
         }
         public bool WriteInt32(string address, Int32 value)
         {
-            lock (_lockWrite32)
+            lock (_ioLock)
             {
-                string response = SendCommand($"WR {address}.L {value}");
-                if (response.Contains("not") || response.Contains("EX"))
-                {
-                    PropertyChangedEvent($"{Tcpstatus.disconnected}");
-                    IsSessionStarted = false;
-                    if (_isConnected)
-                    {
-                        _timer.Elapsed -= Reconnect;
-                        _timer.Elapsed += Reconnect;
-                        _timer.Start();
-                    }
-                }
-                else
-                {
-                    _isConnected = true;
-                    _timer.Elapsed -= Reconnect;
-                    _timer.Stop();
-                    PropertyChangedEvent($"{Tcpstatus.connected}");
-                    IsSessionStarted = true;
-                }
+                string response = SendCommandUnlocked($"WR {address}.L {value}");
+                HandleWriteResponse(response);
                 return ParseResponse(response) == TcpReceiveCMD.OK;
             }
         }
-        //public bool WriteInt16(string address, short value)
-        //{
-        //    string response = SendCommand($"WR {address}.S {value}");
-        //    return ParseResponse(response) == TcpReceiveCMD.OK;
-        //}
         public ushort ReadUInt16(string address)
         {
-            lock (_lockRead)
+            lock (_ioLock)
             {
                 try
                 {
-                    string response = SendCommand($"RD {address}.U");
+                    string response = SendCommandUnlocked($"RD {address}.U");
                     if (ushort.TryParse(response, out ushort value))
                     {
-                        _isConnected = true;
-                        PropertyChangedEvent($"{Tcpstatus.connected}");
-                        _timer.Elapsed -= Reconnect;
-                        _timer.Stop();
+                        MarkConnected();
                         return value;
                     }
                     if (response == "OK" || response == "00000")
                     {
-                        MessageBox.Show($"Lỗi đọc {address}: Không có dữ liệu trả về", "PLC Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        LogProgram.WriteLog($"[PLC] ReadUInt16 {address}: phản hồi OK nhưng không có data");
                         return 0;
                     }
                     if (response.Contains("not") || response.Contains("EX"))
                     {
-                        Console.WriteLine($"Lỗi kết nối đến PLC tại địa chỉ {address}: {response}");
+                        LogProgram.WriteLog($"[PLC] ReadUInt16 {address} lỗi kết nối: {response}");
                         PropertyChangedEvent($"{Tcpstatus.disconnected}");
-                        if (_isConnected)
-                        {
-                            _timer.Elapsed -= Reconnect;
-                            _timer.Elapsed += Reconnect;
-                            _timer.Start();
-                        }
+                        StartReconnectIfNeeded();
                     }
                     else
                     {
-                        _isConnected = true;
-                        PropertyChangedEvent($"{Tcpstatus.connected}");
-                        IsSessionStarted = true;
+                        MarkConnected();
                     }
                     return 0;
                 }
                 catch
                 {
-                    Console.WriteLine($"Lỗi kết nối đến PLC tại địa chỉ {address}");
+                    LogProgram.WriteLog($"[PLC] ReadUInt16 exception tại {address}");
                     return 0;
                 }
-                //MessageBox.Show("4");
             }
         }
         public short ReadInt16(string address)
         {
-            lock (_lockReadS16)
+            lock (_ioLock)
             {
                 try
                 {
-                    string response = SendCommand($"RD {address}.S");
+                    string response = SendCommandUnlocked($"RD {address}.S");
                     if (short.TryParse(response, out short value))
                     {
-                        _isConnected = true;
-                        PropertyChangedEvent($"{Tcpstatus.connected}");
-                        _timer.Elapsed -= Reconnect;
-                        _timer.Stop();
+                        MarkConnected();
                         return value;
                     }
                     if (response == "OK" || response == "00000")
                     {
-                        MessageBox.Show($"Lỗi đọc {address}: Không có dữ liệu trả về", "PLC Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        LogProgram.WriteLog($"[PLC] ReadInt16 {address}: phản hồi OK nhưng không có data");
                         return 0;
                     }
                     if (response.Contains("not") || response.Contains("EX"))
                     {
-                        Console.WriteLine($"Lỗi kết nối đến PLC tại địa chỉ {address}: {response}");
+                        LogProgram.WriteLog($"[PLC] ReadInt16 {address} lỗi kết nối: {response}");
                         PropertyChangedEvent($"{Tcpstatus.disconnected}");
-                        if (_isConnected)
-                        {
-                            _timer.Elapsed -= Reconnect;
-                            _timer.Elapsed += Reconnect;
-                            _timer.Start();
-                        }
+                        StartReconnectIfNeeded();
                     }
                     else
                     {
-                        _isConnected = true;
-                        PropertyChangedEvent($"{Tcpstatus.connected}");
-                        IsSessionStarted = true;
+                        MarkConnected();
                     }
                     return 0;
                 }
                 catch
                 {
-                    Console.WriteLine($"Lỗi kết nối đến PLC tại địa chỉ {address}");
+                    LogProgram.WriteLog($"[PLC] ReadInt16 exception tại {address}");
                     return 0;
                 }
-                //MessageBox.Show("4");
             }
         }
         public bool WriteInt16(string address, short value)
         {
-            lock (_lockWriteS16)
+            lock (_ioLock)
             {
                 try
                 {
-                    string response = SendCommand($"WR {address}.S {value}");
-                    if (response.Contains("not") || response.Contains("EX"))
-                    {
-                        PropertyChangedEvent($"{Tcpstatus.disconnected}");
-                        IsSessionStarted = false;
-                        if (_isConnected)
-                        {
-                            _timer.Elapsed -= Reconnect;
-                            _timer.Elapsed += Reconnect;
-                            _timer.Start();
-                        }
-                    }
-                    else
-                    {
-                        _isConnected = true;
-                        _timer.Elapsed -= Reconnect;
-                        _timer.Stop();
-                        PropertyChangedEvent($"{Tcpstatus.connected}");
-                        IsSessionStarted = true;
-                    }
+                    string response = SendCommandUnlocked($"WR {address}.S {value}");
+                    HandleWriteResponse(response);
                     return ParseResponse(response) == TcpReceiveCMD.OK;
                 }
                 catch
                 {
                     return false;
                 }
-                //MessageBox.Show("4");
             }
         }
         public Int32 ReadInt32(string address)
         {
-            lock (_lockRead32)
+            lock (_ioLock)
             {
                 try
                 {
-                    string response = SendCommand($"RD {address}.L");
+                    string response = SendCommandUnlocked($"RD {address}.L");
                     if (Int32.TryParse(response, out Int32 value))
                     {
-                        _isConnected = true;
-                        PropertyChangedEvent($"{Tcpstatus.connected}");
-                        _timer.Elapsed -= Reconnect;
-                        _timer.Stop();
+                        MarkConnected();
                         return value;
                     }
                     if (response == "OK" || response == "00000")
                     {
-                        MessageBox.Show($"Lỗi đọc {address}: Không có dữ liệu trả về", "PLC Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        LogProgram.WriteLog($"[PLC] ReadInt32 {address}: phản hồi OK nhưng không có data");
                         return 0;
                     }
                     if (response.Contains("not") || response.Contains("EX"))
                     {
-                        Console.WriteLine($"Lỗi kết nối đến PLC tại địa chỉ {address}: {response}");
+                        LogProgram.WriteLog($"[PLC] ReadInt32 {address} lỗi kết nối: {response}");
                         PropertyChangedEvent($"{Tcpstatus.disconnected}");
-                        if (_isConnected)
-                        {
-                            _timer.Elapsed -= Reconnect;
-                            _timer.Elapsed += Reconnect;
-                            _timer.Start();
-                        }
+                        StartReconnectIfNeeded();
                     }
                     else
                     {
-                        _isConnected = true;
-                        PropertyChangedEvent($"{Tcpstatus.connected}");
-                        IsSessionStarted = true;
+                        MarkConnected();
                     }
                     return 0;
                 }
                 catch
                 {
-                    Console.WriteLine($"Lỗi kết nối đến PLC tại địa chỉ {address}");
+                    LogProgram.WriteLog($"[PLC] ReadInt32 exception tại {address}");
                     return 0;
                 }
-                //MessageBox.Show("4");
             }
         }
-        //public short ReadInt16(string address)
-        //{
-        //    string response = SendCommand($"RD {address}.S");
-        //    if (short.TryParse(response, out short value))
-        //        return value;
-        //    LogProgram.WriteLog($"[PLC] Giá trị không hợp lệ từ {address}: {response}");
-        //    return 0;
-        //}
         public bool ReadBit(string address)
         {
-            lock (_lockReadBit)
+            lock (_ioLock)
             {
-                string response = SendCommand($"RD {address}");
+                string response = SendCommandUnlocked($"RD {address}");
                 if (response == "1") return true;
                 if (response == "0") return false;
                 LogProgram.WriteLog($"[PLC] Bit không hợp lệ tại {address}: {response}");
@@ -369,65 +315,101 @@ namespace Project_Visionpro.Program.PLC
         }
         public bool SetBit(string address)
         {
-            string response = SendCommand($"ST {address}");
-            return ParseResponse(response) == TcpReceiveCMD.OK;
+            lock (_ioLock)
+            {
+                string response = SendCommandUnlocked($"ST {address}");
+                return ParseResponse(response) == TcpReceiveCMD.OK;
+            }
         }
         public bool ResetBit(string address)
         {
-            string response = SendCommand($"RS {address}");
-            return ParseResponse(response) == TcpReceiveCMD.OK;
+            lock (_ioLock)
+            {
+                string response = SendCommandUnlocked($"RS {address}");
+                return ParseResponse(response) == TcpReceiveCMD.OK;
+            }
         }
         public bool ReadBitFromWord(string wordAddress, int bitIndex)
         {
             if (bitIndex < 0 || bitIndex > 15)
             {
-                LogProgram.WriteLog($"[PLC] Bit index {bitIndex} không hợp lệ (0–15)");
+                LogProgram.WriteLog($"[PLC] Bit index {bitIndex} không hợp lệ (0-15)");
                 return false;
             }
-            ushort value = ReadUInt16(wordAddress);
-            bool result = (value & (1 << bitIndex)) != 0;
-            // LogProgram.WriteLog($"[PLC] ReadBit: {wordAddress}.{bitIndex} = {(result ? "1" : "0")}");
-            return result;
+            // FIX: dùng lock(_ioLock) + SendCommandUnlocked để tránh double-lock
+            // (ReadUInt16 public cũng lock _ioLock → nếu gọi từ đây sẽ deadlock trên non-reentrant lock)
+            lock (_ioLock)
+            {
+                string response = SendCommandUnlocked($"RD {wordAddress}.U");
+                if (!ushort.TryParse(response, out ushort value))
+                {
+                    LogProgram.WriteLog($"[PLC] ReadBitFromWord: đọc {wordAddress} thất bại: {response}");
+                    return false;
+                }
+                return (value & (1 << bitIndex)) != 0;
+            }
         }
+        // FIX PLC-1 & PLC-4: toàn bộ RMW (Read-Modify-Write) trong một lock duy nhất
+        // Không còn nested lock — SendCommandUnlocked được gọi trực tiếp bên trong _ioLock
         public bool SetBitInWord(string wordAddress, int bitIndex)
         {
-            // Dùng _lock (lock của SendCommand) làm mutex duy nhất cho toàn bộ RMW
-            // để tránh race condition giữa Read và Write khi 4 form gọi đồng thời
-            lock (_lock)
+            lock (_ioLock)
             {
-                ushort original = ReadUInt16(wordAddress);
+                // Đọc giá trị hiện tại (unlocked vì đã trong _ioLock)
+                string readResp = SendCommandUnlocked($"RD {wordAddress}.U");
+                if (!ushort.TryParse(readResp, out ushort original))
+                {
+                    LogProgram.WriteLog($"[PLC] SetBitInWord: đọc {wordAddress} thất bại: {readResp}");
+                    return false;
+                }
                 ushort updated = (ushort)(original | (1 << bitIndex));
-                return WriteUInt16(wordAddress, updated);
+                string writeResp = SendCommandUnlocked($"WR {wordAddress}.U {updated}");
+                HandleWriteResponse(writeResp);
+                return ParseResponse(writeResp) == TcpReceiveCMD.OK;
             }
         }
         public bool ResetBitInWord(string wordAddress, int bitIndex)
         {
-            lock (_lock)
+            lock (_ioLock)
             {
-                ushort original = ReadUInt16(wordAddress);
+                string readResp = SendCommandUnlocked($"RD {wordAddress}.U");
+                if (!ushort.TryParse(readResp, out ushort original))
+                {
+                    LogProgram.WriteLog($"[PLC] ResetBitInWord: đọc {wordAddress} thất bại: {readResp}");
+                    return false;
+                }
                 ushort updated = (ushort)(original & ~(1 << bitIndex));
-                return WriteUInt16(wordAddress, updated);
+                string writeResp = SendCommandUnlocked($"WR {wordAddress}.U {updated}");
+                HandleWriteResponse(writeResp);
+                return ParseResponse(writeResp) == TcpReceiveCMD.OK;
             }
         }
         private void Reconnect(object sender, System.Timers.ElapsedEventArgs e)
         {
-            try
+            // _ioLock ngăn Reconnect() chạy đồng thời với bất kỳ Read/Write nào từ 4 Form1.
+            // Monitor.Enter reentrant nên StartCommunication() → SendCommand() → lock(_ioLock)
+            // bên trong vẫn hoạt động đúng (cùng thread).
+            lock (_ioLock)
             {
-                Close();
-                Open();
-                StartCommunication();
-                //  LogProgram.WriteLog($"Ready communication to {_ip}:{_port} after Reconnect");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Reconnection failed: {ex.Message}");
-                _timer.Interval = 3000; // Thử lại sau 3 giây
-                _timer.AutoReset = false; // Chỉ chạy một lần
-                _timer.Elapsed -= Reconnect; // Đảm bảo không đăng ký nhiều lần
-                _timer.Elapsed += Reconnect; // Đăng ký lại sự kiện
-                _timer.Start();
-                PropertyChangedEvent($"{Tcpstatus.disconnected}");
-                // LogProgram.WriteLog($"Reconnection failed: {ex.Message}");
+                _reconnectPending = false;
+                try
+                {
+                    Close();
+                    Open();
+                    StartCommunication();
+                    LogProgram.WriteLog($"[HostLinkTCP] Reconnected to {_ip}:{_port}");
+                }
+                catch (Exception ex)
+                {
+                    LogProgram.WriteLog($"[HostLinkTCP] Reconnection failed: {ex.Message}");
+                    PropertyChangedEvent($"{Tcpstatus.disconnected}");
+                    _reconnectPending = true;
+                    _timer.Interval = 3000;
+                    _timer.AutoReset = false;
+                    _timer.Elapsed -= Reconnect;
+                    _timer.Elapsed += Reconnect;
+                    _timer.Start();
+                }
             }
         }
     }

@@ -155,24 +155,28 @@ namespace Bottom_Sorting.Services.Controllers
         private static CancellationTokenSource _cts;
         private bool _currentState;
         private bool _loaded;
-        private  static Dictionary<Guna.UI2.WinForms.Guna2GradientButton, ButtonBinding> _bindings
+        private static readonly object _bindingsLock = new object();
+        private static readonly object _startLock = new object();
+        private static Dictionary<Guna.UI2.WinForms.Guna2GradientButton, ButtonBinding> _bindings
             = new Dictionary<Guna.UI2.WinForms.Guna2GradientButton, ButtonBinding>();
         private static Task _task;
         public PLCBitControl(KeyenceHostLinkTcpClient plc,string tag, Guna.UI2.WinForms.Guna2GradientButton button)
         {
             _plc = plc;
-            // TAG: MR600|0
             var parts = tag.Split('.');
             WordAddress = parts[0];
             BitIndex = int.Parse(parts[1]);
-            if (_bindings.ContainsKey(button))
-                return;
-            _bindings[button] = new ButtonBinding
+            lock (_bindingsLock)
             {
-                _button = button,
-                Address = button.Tag.ToString(),
-                LastState = false
-            };
+                if (_bindings.ContainsKey(button))
+                    return;
+                _bindings[button] = new ButtonBinding
+                {
+                    _button = button,
+                    Address = button.Tag.ToString(),
+                    LastState = false
+                };
+            }
         }
         public bool LoadOnce()
         {
@@ -182,47 +186,59 @@ namespace Bottom_Sorting.Services.Controllers
             _loaded = true;
             return _currentState;
         }
-        public  static void  Start()
-        { 
-            if (_task != null && !_task.IsCompleted)
-                return;
-            _cts = new CancellationTokenSource();
-            var token = _cts.Token;
-            _task = Task.Run(async () =>
+        public static void Start()
+        {
+            lock (_startLock)
             {
-                while (!token.IsCancellationRequested)
+                if (_task != null && !_task.IsCompleted)
+                    return;
+                _cts = new CancellationTokenSource();
+                var token = _cts.Token;
+                _task = Task.Run(async () =>
                 {
-                    foreach (var item in _bindings.Values)
+                    while (!token.IsCancellationRequested)
                     {
-                        try
+                        // Snapshot để không giữ lock trong suốt vòng lặp PLC (tránh deadlock)
+                        ButtonBinding[] snapshot;
+                        lock (_bindingsLock) { snapshot = new List<ButtonBinding>(_bindings.Values).ToArray(); }
+
+                        foreach (var item in snapshot)
                         {
-                            if (item.LastState != _plc.ReadBitFromWord(item.Address.ToString().Split('.')[0], int.Parse(item.Address.ToString().Split('.')[1])))
+                            if (token.IsCancellationRequested) break;
+                            try
                             {
-                                item.LastState = _plc.ReadBitFromWord(item.Address.ToString().Split('.')[0], int.Parse(item.Address.ToString().Split('.')[1]));
-                                if (item._button.IsHandleCreated)
+                                var parts = item.Address.ToString().Split('.');
+                                bool newState = _plc.ReadBitFromWord(parts[0], int.Parse(parts[1]));
+                                if (item.LastState != newState)
                                 {
-                                    item._button.BeginInvoke(new Action(() =>
+                                    item.LastState = newState;
+                                    if (item._button.IsHandleCreated)
                                     {
-                                        item._button.FillColor = item.LastState ? System.Drawing.Color.Lime : System.Drawing.Color.Silver;
-                                    }));
+                                        item._button.BeginInvoke(new Action(() =>
+                                        {
+                                            item._button.FillColor = item.LastState ? System.Drawing.Color.Lime : System.Drawing.Color.Silver;
+                                        }));
+                                    }
                                 }
                             }
+                            catch (Exception ex)
+                            {
+                                MessageBox.Show(ex.Message);
+                            }
                         }
-                        catch(Exception ex)
-                        {
-                            MessageBox.Show(ex.Message);
-                        }
+                        try { await Task.Delay(1000, token); } catch (TaskCanceledException) { break; }
                     }
-                    await Task.Delay(1000, token);
-                }
-            }, token);
+                }, token);
+            }
         }
-        public  static void Stop()
+        public static void Stop()
         {
             _cts?.Cancel();
-            _task = null;
+            // Không null _task ở đây — task tự thoát khi token bị cancel.
+            // Nếu null ngay, Start() tiếp theo sẽ thấy _task==null và tạo task mới
+            // trong khi task cũ vẫn đang chạy → hai vòng lặp polling song song.
         }
-        public static void  Dispose()
+        public static void Dispose()
         {
             Stop();
             _cts?.Dispose();
