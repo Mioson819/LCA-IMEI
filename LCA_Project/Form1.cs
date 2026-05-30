@@ -421,6 +421,13 @@ namespace LCA_Project
                 LogProgram.WriteLog("PLC write UInt16 " + map.sendDm + " failed: " + ex, this.Nametation);
             }
 
+            // Khi Pass (value==0) trong mode 2 tray IMEI: đọc vị trí sản phẩm từ PLC
+            // và tô màu xanh trên _Load2 TRƯỚC khi BeginInvoke UI.
+            // Phải gọi ở đây (ngoài SafeBeginInvoke) để đọc PLC kịp lúc vị trí còn đúng.
+            // MarkCurrentAsPass() tự marshal sang UI thread qua SafeUI/BeginInvoke bên trong.
+            if (value == 0)
+                _Load2?.MarkCurrentAsPass();
+
             // ← SafeBeginInvoke thay cho this.BeginInvoke
             SafeBeginInvoke((MethodInvoker)(() =>
             {
@@ -996,7 +1003,6 @@ namespace LCA_Project
                 DeleteFile();
             };
         }
-
         private void ReadDataForNG4()
         {
             _NG4 = new ucButtonDisplayGrid<DataforNG4>(2, nYNG4, this.plc,

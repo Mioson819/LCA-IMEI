@@ -352,6 +352,21 @@ namespace Bottom_Sorting.Services.Utilities
         {
             this.nX = 0; this.nY = 0; this.classify = 0; this.Out = 0; this.nYNG = 0; this.nXNG = 0;
         }
+        /// <summary>
+        /// Gọi từ Form1.HandleLogLine khi logwatcher đọc về Pass (value == 0) trong mode 2 tray IMEI.
+        /// Đọc vị trí hiện tại của sản phẩm từ PLC (values[0]=X, values[1]=Y) rồi tô màu xanh.
+        /// SafeUI dùng BeginInvoke nên an toàn gọi từ background thread (logwatcher callback).
+        /// </summary>
+        public void MarkCurrentAsPass()
+        {
+            if (values == null || values.Count < 2) return;
+            if (TryReadInt16(values[0], out short x) && TryReadInt16(values[1], out short y))
+            {
+                LogProgram.WriteLog($"{NameStation} MarkCurrentAsPass: vị trí [{x}-{y}] → xanh");
+                SafeUI(() => UpdateLabel((int)x, (int)y, 0, 0));
+            }
+        }
+
         public void UpdateLabel(int row, int colums, int classify, int Out)
         {
             try
