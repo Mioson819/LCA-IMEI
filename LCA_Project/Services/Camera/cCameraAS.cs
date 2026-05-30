@@ -277,18 +277,17 @@ public class CameraAS : IDisposable
                         }
                         else if (lines[0] == "GS" && lines[1] == "1")
                         {
-                            MessageBox.Show("Calib Hand Eye is running");
+                            // KHÔNG dùng MessageBox ở đây — ReceiveData chạy trên socket async callback
+                            // (threadpool), đang giữ _lockReice. MessageBox block thread + lock →
+                            // BeginReceiveNext không được gọi → camera điếc cho đến khi user click OK.
+                            LogProgram.WriteLog("[CameraAS] Calib Hand Eye is running (GS,1 received)");
                         }
                         else if (lines[0] == "HE" && lines[1] == "1")
                         {
                             if (CalibStep == 10)
-                            {
-                                MessageBox.Show("Calib Hand Eye is Step 10, Please chose Rotato - ");
-                            }
+                                LogProgram.WriteLog("[CameraAS] Calib HE Step 10 — Please choose Rotate -");
                             else if (CalibStep == 11)
-                            {
-                                MessageBox.Show("Calib Hand Eye is Step 11, Please chose Rotato + ");
-                            }
+                                LogProgram.WriteLog("[CameraAS] Calib HE Step 11 — Please choose Rotate +");
                             CalibStep++;
                         }
                         BeginReceiveNext(sock);

@@ -606,23 +606,31 @@ namespace LCA_Project
                     idle = (!string.IsNullOrEmpty(OldIdleTime)) ? (_OldIdleTime + IdleTime1.Elapsed) : IdleTime1.Elapsed;
                 }
 
-                // ← SafeInvoke thay cho this.Invoke — tránh lỗi khi form đóng
-                SafeInvoke((MethodInvoker)(() =>
+                // SafeBeginInvoke (async) thay vì SafeInvoke (sync/blocking).
+                // Timer_Elapsed chạy trên threadpool và giữ _pollGate.
+                // Nếu dùng SafeInvoke (this.Invoke) mà UI thread đang bận → timer thread
+                // chờ vô thời hạn, _pollGate không được release → mọi tick tiếp theo bị bỏ qua.
+                var runCopy = run; var errCopy = err; var idleCopy = idle;
+                var input = _Input; var ok = _OK; var ng = _NG;
+                SafeBeginInvoke((MethodInvoker)(() =>
                 {
-                    NberPrdNGs.Text = _NG.ToString();
-                    NberPrdOKs.Text = _OK.ToString();
-                    NberPrdIns.Text = _Input.ToString();
-                    if (NberPrdIns.Text != "" && NberPrdOKs.Text != "")
+                    NberPrdNGs.Text = ng.ToString();
+                    NberPrdOKs.Text = ok.ToString();
+                    NberPrdIns.Text = input.ToString();
+                    if (input > 0 && ok >= 0)
                     {
-                        float value = ((float)_OK / (float)_Input) * 100;
+                        float value = ((float)ok / (float)input) * 100;
                         percentOKs.Text = value.ToString("0.00");
                     }
-                    RunTime.Text = run.ToString(@"hh\:mm\:ss");
-                    ErrTime.Text = err.ToString(@"hh\:mm\:ss");
-                    IdleTime.Text = idle.ToString(@"hh\:mm\:ss");
-                    var s = int.Parse(run.ToString(@"hh"));
-                    INUPHs.Text = ((float)_Input / float.Parse(run.ToString(@"hh"))).ToString("0.00");
-                    PASSUPHs.Text = ((float)_OK / float.Parse(run.ToString(@"hh"))).ToString("0.00");
+                    RunTime.Text = runCopy.ToString(@"hh\:mm\:ss");
+                    ErrTime.Text = errCopy.ToString(@"hh\:mm\:ss");
+                    IdleTime.Text = idleCopy.ToString(@"hh\:mm\:ss");
+                    var h = (float)runCopy.TotalHours;
+                    if (h > 0)
+                    {
+                        INUPHs.Text = (input / h).ToString("0.00");
+                        PASSUPHs.Text = (ok / h).ToString("0.00");
+                    }
                 }));
             }
             finally

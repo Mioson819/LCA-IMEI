@@ -1,4 +1,5 @@
-﻿using Project_Visionpro.Program.PLC;
+﻿using LCA_Project.Utilities;
+using Project_Visionpro.Program.PLC;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -223,7 +224,10 @@ namespace Bottom_Sorting.Services.Controllers
                             }
                             catch (Exception ex)
                             {
-                                MessageBox.Show(ex.Message);
+                                // KHÔNG dùng MessageBox ở đây — chạy trên background thread.
+                                // MessageBox block vòng lặp poll: nếu PLC mất kết nối liên tục,
+                                // popup xuất hiện lại ngay sau khi đóng → form teaching đơ hoàn toàn.
+                                LogProgram.WriteLog($"[PLCBitControl] Poll error: {ex.Message}");
                             }
                         }
                         try { await Task.Delay(1000, token); } catch (TaskCanceledException) { break; }
