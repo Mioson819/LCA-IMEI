@@ -137,6 +137,9 @@ public class CameraAS : IDisposable
                 try { _clientSocket.Dispose(); } catch { }
             }
             IsConnected = false;
+            // Clear queue khi mất kết nối để tránh dequeue nhầm station
+            // cho trigger tiếp theo sau khi reconnect.
+            lock (_pendingLock) { _pendingStations.Clear(); }
             Console.WriteLine("TCP disconnected from camera!");
         }
         catch { }
