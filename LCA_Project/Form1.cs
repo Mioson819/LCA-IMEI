@@ -1339,6 +1339,8 @@ namespace LCA_Project
                     if (b == false && statusReset == false)
                     {
                         if (_Load != null) _Load.RsetLoad();
+                        // Mode 2 tray IMEI: reset _Load2 (pnlUnload) về vàng cùng lúc với _Load
+                        if (_Load2 != null) _Load2.RsetLoad();
                         statusReset = true;
                         LogProgram.WriteLog("Reset Tray Load :" + this.Nametation, this.Nametation);
                     }
@@ -1346,6 +1348,8 @@ namespace LCA_Project
                     {
                         statusReset = false;
                         if (_Load != null) _Load.FullTray();
+                        // Mode 2 tray IMEI: FullTray cho _Load2 khi tray mới được đặt vào
+                        if (_Load2 != null) _Load2.FullTray();
                     }
                 }
                 catch (Exception ex)
