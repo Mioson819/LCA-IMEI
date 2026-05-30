@@ -421,12 +421,11 @@ namespace LCA_Project
                 LogProgram.WriteLog("PLC write UInt16 " + map.sendDm + " failed: " + ex, this.Nametation);
             }
 
-            // Khi Pass (value==0) trong mode 2 tray IMEI: đọc vị trí sản phẩm từ PLC
-            // và tô màu xanh trên _Load2 TRƯỚC khi BeginInvoke UI.
-            // Phải gọi ở đây (ngoài SafeBeginInvoke) để đọc PLC kịp lúc vị trí còn đúng.
-            // MarkCurrentAsPass() tự marshal sang UI thread qua SafeUI/BeginInvoke bên trong.
-            if (value == 0)
-                _Load2?.MarkCurrentAsPass();
+            // NOTE: KHÔNG gọi _Load2.MarkCurrentAsPass() ở đây.
+            // LogWatcher fire trong pnLoad phase (sau test, TRƯỚC khi robot di chuyển sang pnUnload).
+            // Lúc này nXULoadNGNow/mYULoadNGNow vẫn chứa tọa độ cycle trước → đổi xanh sai vị trí.
+            // Việc đổi xanh _Load2 được xử lý bởi LoopLoad (ucButtonDisplayGrid) khi
+            // TakePointNG signal fire — đúng thời điểm robot đặt sản phẩm vào pnlUnload.
 
             // ← SafeBeginInvoke thay cho this.BeginInvoke
             SafeBeginInvoke((MethodInvoker)(() =>
