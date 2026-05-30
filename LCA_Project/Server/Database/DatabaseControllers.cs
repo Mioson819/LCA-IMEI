@@ -254,7 +254,7 @@ namespace LCA_Project.Database
             using (var con = SqlConnect.GetConnection)
             {
                 con.Open();
-                var cmd = new SqlCommand("SELECT nXULoadNGNow,mYULoadNGNow,TakePointNG,ResetTrayNG FROM ControllerParameterInputsResults  WHERE Station = @key", con);
+                var cmd = new SqlCommand("SELECT nXULoadNGNow,mYULoadNGNow,TakePointNG,ResetTrayNG,TakePointOK FROM ControllerParameterInputsResults WHERE Station = @key", con);
                 cmd.Parameters.AddWithValue("@key", key);
                 using (var reader = cmd.ExecuteReader())
                 {

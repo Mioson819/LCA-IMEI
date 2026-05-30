@@ -462,8 +462,9 @@ namespace LCA_Project.Utilities
     {
         public string nXULoadNGNow { get; set; }
         public string mYULoadNGNow { get; set; }
-        public string TakePointNG { get; set; }
-        public string ResetTrayNG { get; set; }
+        public string TakePointNG  { get; set; }
+        public string ResetTrayNG  { get; set; }
+        public string TakePointOK  { get; set; }  // Signal khi robot đặt sản phẩm PASS vào pnlUnload
     }
     public class Dataforload
     {
