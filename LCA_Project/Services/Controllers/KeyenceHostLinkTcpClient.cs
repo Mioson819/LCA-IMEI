@@ -15,8 +15,11 @@ namespace Project_Visionpro.Program.PLC
         // tất cả Send/Receive trên stream. SetBitInWord/ResetBitInWord (RMW) cũng
         // dùng chính lock này để toàn bộ chuỗi Read→OR/AND→Write là atomic.
         private readonly object _ioLock = new object();
-        private bool _isConnected = false;
+        private volatile bool _isConnected = false;
         private volatile bool _isSessionStarted = false;
+        // Chống timer-reset liên tiếp khi 4 Form1 đều báo lỗi cùng lúc:
+        // chỉ khởi động timer reconnect một lần cho đến khi reconnect thành công.
+        private bool _reconnectPending = false;
         protected virtual void PropertyChangedEvent(string propertyName)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
@@ -120,6 +123,29 @@ namespace Project_Visionpro.Program.PLC
             IsSessionStarted = result == TcpReceiveCMD.OK;
             return IsSessionStarted;
         }
+        // Gọi bên trong _ioLock. Chỉ khởi động timer lần đầu để tránh reset đếm ngược
+        // mỗi khi một trong 4 Form1 gặp lỗi liên tiếp → reconnect bị trì hoãn vô hạn.
+        private void StartReconnectIfNeeded()
+        {
+            if (_isConnected && !_reconnectPending)
+            {
+                _reconnectPending = true;
+                _timer.Elapsed -= Reconnect;
+                _timer.Elapsed += Reconnect;
+                _timer.Start();
+            }
+        }
+
+        private void MarkConnected()
+        {
+            _reconnectPending = false;
+            _isConnected = true;
+            _timer.Elapsed -= Reconnect;
+            _timer.Stop();
+            PropertyChangedEvent($"{Tcpstatus.connected}");
+            IsSessionStarted = true;
+        }
+
         // FIX PLC-2: helper xử lý response disconnect/reconnect — dùng chung cho tất cả Write
         private void HandleWriteResponse(string response)
         {
@@ -127,20 +153,11 @@ namespace Project_Visionpro.Program.PLC
             {
                 PropertyChangedEvent($"{Tcpstatus.disconnected}");
                 IsSessionStarted = false;
-                if (_isConnected)
-                {
-                    _timer.Elapsed -= Reconnect;
-                    _timer.Elapsed += Reconnect;
-                    _timer.Start();
-                }
+                StartReconnectIfNeeded();
             }
             else
             {
-                _isConnected = true;
-                _timer.Elapsed -= Reconnect;
-                _timer.Stop();
-                PropertyChangedEvent($"{Tcpstatus.connected}");
-                IsSessionStarted = true;
+                MarkConnected();
             }
         }
         public bool WriteUInt16(string address, ushort value)
@@ -170,10 +187,7 @@ namespace Project_Visionpro.Program.PLC
                     string response = SendCommandUnlocked($"RD {address}.U");
                     if (ushort.TryParse(response, out ushort value))
                     {
-                        _isConnected = true;
-                        PropertyChangedEvent($"{Tcpstatus.connected}");
-                        _timer.Elapsed -= Reconnect;
-                        _timer.Stop();
+                        MarkConnected();
                         return value;
                     }
                     if (response == "OK" || response == "00000")
@@ -185,18 +199,11 @@ namespace Project_Visionpro.Program.PLC
                     {
                         LogProgram.WriteLog($"[PLC] ReadUInt16 {address} lỗi kết nối: {response}");
                         PropertyChangedEvent($"{Tcpstatus.disconnected}");
-                        if (_isConnected)
-                        {
-                            _timer.Elapsed -= Reconnect;
-                            _timer.Elapsed += Reconnect;
-                            _timer.Start();
-                        }
+                        StartReconnectIfNeeded();
                     }
                     else
                     {
-                        _isConnected = true;
-                        PropertyChangedEvent($"{Tcpstatus.connected}");
-                        IsSessionStarted = true;
+                        MarkConnected();
                     }
                     return 0;
                 }
@@ -216,10 +223,7 @@ namespace Project_Visionpro.Program.PLC
                     string response = SendCommandUnlocked($"RD {address}.S");
                     if (short.TryParse(response, out short value))
                     {
-                        _isConnected = true;
-                        PropertyChangedEvent($"{Tcpstatus.connected}");
-                        _timer.Elapsed -= Reconnect;
-                        _timer.Stop();
+                        MarkConnected();
                         return value;
                     }
                     if (response == "OK" || response == "00000")
@@ -231,18 +235,11 @@ namespace Project_Visionpro.Program.PLC
                     {
                         LogProgram.WriteLog($"[PLC] ReadInt16 {address} lỗi kết nối: {response}");
                         PropertyChangedEvent($"{Tcpstatus.disconnected}");
-                        if (_isConnected)
-                        {
-                            _timer.Elapsed -= Reconnect;
-                            _timer.Elapsed += Reconnect;
-                            _timer.Start();
-                        }
+                        StartReconnectIfNeeded();
                     }
                     else
                     {
-                        _isConnected = true;
-                        PropertyChangedEvent($"{Tcpstatus.connected}");
-                        IsSessionStarted = true;
+                        MarkConnected();
                     }
                     return 0;
                 }
@@ -278,10 +275,7 @@ namespace Project_Visionpro.Program.PLC
                     string response = SendCommandUnlocked($"RD {address}.L");
                     if (Int32.TryParse(response, out Int32 value))
                     {
-                        _isConnected = true;
-                        PropertyChangedEvent($"{Tcpstatus.connected}");
-                        _timer.Elapsed -= Reconnect;
-                        _timer.Stop();
+                        MarkConnected();
                         return value;
                     }
                     if (response == "OK" || response == "00000")
@@ -293,18 +287,11 @@ namespace Project_Visionpro.Program.PLC
                     {
                         LogProgram.WriteLog($"[PLC] ReadInt32 {address} lỗi kết nối: {response}");
                         PropertyChangedEvent($"{Tcpstatus.disconnected}");
-                        if (_isConnected)
-                        {
-                            _timer.Elapsed -= Reconnect;
-                            _timer.Elapsed += Reconnect;
-                            _timer.Start();
-                        }
+                        StartReconnectIfNeeded();
                     }
                     else
                     {
-                        _isConnected = true;
-                        PropertyChangedEvent($"{Tcpstatus.connected}");
-                        IsSessionStarted = true;
+                        MarkConnected();
                     }
                     return 0;
                 }
@@ -399,22 +386,30 @@ namespace Project_Visionpro.Program.PLC
         }
         private void Reconnect(object sender, System.Timers.ElapsedEventArgs e)
         {
-            try
+            // _ioLock ngăn Reconnect() chạy đồng thời với bất kỳ Read/Write nào từ 4 Form1.
+            // Monitor.Enter reentrant nên StartCommunication() → SendCommand() → lock(_ioLock)
+            // bên trong vẫn hoạt động đúng (cùng thread).
+            lock (_ioLock)
             {
-                Close();
-                Open();
-                StartCommunication();
-                LogProgram.WriteLog($"[HostLinkTCP] Reconnected to {_ip}:{_port}");
-            }
-            catch (Exception ex)
-            {
-                LogProgram.WriteLog($"[HostLinkTCP] Reconnection failed: {ex.Message}");
-                _timer.Interval = 3000;
-                _timer.AutoReset = false;
-                _timer.Elapsed -= Reconnect;
-                _timer.Elapsed += Reconnect;
-                _timer.Start();
-                PropertyChangedEvent($"{Tcpstatus.disconnected}");
+                _reconnectPending = false;
+                try
+                {
+                    Close();
+                    Open();
+                    StartCommunication();
+                    LogProgram.WriteLog($"[HostLinkTCP] Reconnected to {_ip}:{_port}");
+                }
+                catch (Exception ex)
+                {
+                    LogProgram.WriteLog($"[HostLinkTCP] Reconnection failed: {ex.Message}");
+                    PropertyChangedEvent($"{Tcpstatus.disconnected}");
+                    _reconnectPending = true;
+                    _timer.Interval = 3000;
+                    _timer.AutoReset = false;
+                    _timer.Elapsed -= Reconnect;
+                    _timer.Elapsed += Reconnect;
+                    _timer.Start();
+                }
             }
         }
     }

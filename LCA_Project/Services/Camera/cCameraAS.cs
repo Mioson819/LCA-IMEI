@@ -26,8 +26,13 @@ public class CameraAS : IDisposable
     public event SendResult _send;
     public event EventHandler _StartCalib;
     public bool changejob = true;
-    // FIX Bug D: nameStation được set trước khi gửi lệnh (xem TriggerResult/ChangFearture)
-    private volatile string nameStation;
+    // Queue FIFO ghép mỗi lệnh GCP gửi đi với station tương ứng.
+    // Khi camera phản hồi (ReceiveData), Dequeue lấy đúng station của lệnh đó.
+    // Bắt buộc vì cam1 dùng chung cho Station1 và Station2: nếu cả hai trigger
+    // cùng lúc và dùng volatile string thì Station1 sẽ nhận kết quả của Station2.
+    private readonly Queue<string> _pendingStations = new Queue<string>();
+    private readonly object _pendingLock = new object();
+    private volatile string nameStation; // fallback khi queue rỗng (không nên xảy ra)
     private readonly object _lock = new object();
     private readonly object _lockReice = new object();
     // FIX Bug E: _connectLock bảo vệ Connect/Disconnect khỏi race với PingTimer
@@ -43,8 +48,9 @@ public class CameraAS : IDisposable
     {
         _ip = ip;
         _port = port;
-        // Ping mỗi 2 giây — delay 2s trước lần đầu để tránh race với Connect() ban đầu
-        pingTimer = new System.Threading.Timer(PingTimerCallback, null, 2000, 2000);
+        // Ping mỗi 15 giây — đủ để phát hiện mất kết nối mà không tạo tải network.
+        // Nếu camera mất kết nối, sẽ phát hiện và reconnect trong tối đa 15 giây.
+        pingTimer = new System.Threading.Timer(PingTimerCallback, null, 15000, 15000);
     }
     private void PingTimerCallback(object state)
     {
@@ -164,114 +170,131 @@ public class CameraAS : IDisposable
                     DisconnectSocketOnly();
                     return;
                 }
-                if (bytesRead > 0)
+                if (bytesRead == 0)
                 {
-                    string stringData = Encoding.ASCII.GetString(localBuffer, 0, bytesRead);
-                    Console.WriteLine($"{stringData}");
-                    if (stringData.Contains("Welcome") && Idmodel != "" && IdPLC != "")
-                    {
-                    }
-                    else if (stringData == "User: " && Idmodel != "" && IdPLC != "")
-                    {
-                        SendCommand($"admin\r\n");
-                    }
-                    else if (stringData == "Password: " && Idmodel != "" && IdPLC != "")
-                    {
-                        SendCommand($"\r\n");
-                    }
-                    else if (stringData == "User Logged In\r\n" && Idmodel != "" && IdPLC != "")
-                    {
-                        SendCommand($"SO0\r\n");
-                    }
-                    else if (stringData == "1\r\n" && Idmodel != "" && IdPLC != " ")
-                    {
-                        if (StatusChangeJob)
-                        {
-                            StatusChangeJob = false;
-                            StatusSO = true;
-                            SendCommand($"LF{Idmodel}_{IdPLC}.job\r\n");
-                            _StatusJob?.Invoke("Watting", NamePort);
-                        }
-                        else if (StatusSO)
-                        {
-                            StatusSO = false;
-                            SendCommand($"SO1\r\n");
-                        }
-                        else if (StatusChangeJob == false && StatusSO == false)
-                        {
-                            StatusChangeJob = true;
-                            StatusSO = true;
-                            Reconnect(Idmodel, IdPLC, 7890, "", "");
-                            Idmodel = "";
-                            IdPLC = "";
-                            _StatusJob?.Invoke("Success", NamePort);
-                        }
-                    }
-                    else if (stringData == "2\r\n")
-                    {
-                        _StatusJob?.Invoke("Error", NamePort);
-                    }
-                    else
-                    {
-                        string stringSeparators = stringData.TrimEnd('\r', '\n');
-                        string[] lines = stringSeparators.Split(',');
-                        if (lines.Length > 1)
-                        {
-                            Console.WriteLine("CHECK");
-                            if (lines[0] == "GCP" && lines[1] == "1")
-                            {
-                                // FIX Bug B: kiểm tra đủ 5 phần tử (index 0..4) trước khi truy cập
-                                if (lines.Length >= 5)
-                                {
-                                    try
-                                    {
-                                        // FIX Bug C: tạo mảng local mới, không dùng field xya dùng chung
-                                        string[] xyaLocal = new string[3];
-                                        var s = lines[2].Split('.');
-                                        xyaLocal[0] = s[0].Trim() + (s.Length > 1 ? s[1].Trim() : "");
-                                        var s2 = lines[3].Split('.');
-                                        xyaLocal[1] = s2[0].Trim() + (s2.Length > 1 ? s2[1].Trim() : "");
-                                        var s3 = lines[4].Split('.');
-                                        xyaLocal[2] = s3[0].Trim() + (s3.Length > 1 ? s3[1].Trim() : "");
-                                        // FIX Bug D: đọc nameStation đã được set trước khi gửi GCP
-                                        string stationSnapshot = nameStation;
-                                        _send?.Invoke(xyaLocal, stationSnapshot);
-                                        LogProgram.WriteLog($"PC send Data to {stationSnapshot} Position: {xyaLocal[0]} {xyaLocal[1]} {xyaLocal[2]}");
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        LogProgram.WriteLog($"[CameraAS] Parse GCP data error: {ex.Message}");
-                                    }
-                                }
-                                else
-                                {
-                                    LogProgram.WriteLog($"[CameraAS] GCP packet thiếu fields: '{stringSeparators}' (cần >= 5, nhận {lines.Length})");
-                                }
-                            }
-                            else if (lines[0] == "GS" && lines[1] == "1")
-                            {
-                                MessageBox.Show("Calib Hand Eye is running");
-                            }
-                            else if (lines[0] == "HE" && lines[1] == "1")
-                            {
-                                if (CalibStep == 10)
-                                {
-                                    MessageBox.Show("Calib Hand Eye is Step 10, Please chose Rotato - ");
-                                }
-                                else if (CalibStep == 11)
-                                {
-                                    MessageBox.Show("Calib Hand Eye is Step 11, Please chose Rotato + ");
-                                }
-                                CalibStep++;
-                            }
-                            // Tiếp tục nhận dữ liệu với buffer mới
-                            BeginReceiveNext(sock);
-                            return;
-                        }
-                    }
-                    // Tiếp tục nhận dữ liệu với buffer mới
-                    BeginReceiveNext(sock);
+                    // TCP FIN nhận được: camera chủ động đóng kết nối.
+                    // Phải disconnect để IsConnected = false và ping timer sẽ reconnect.
+                    // Không xử lý sẽ khiến IsConnected = true nhưng không còn BeginReceive
+                    // nào được queue → camera "sống" nhưng bỏ lỡ mọi trigger response.
+                    DisconnectSocketOnly();
+                    return;
                 }
+
+                string stringData = Encoding.ASCII.GetString(localBuffer, 0, bytesRead);
+                Console.WriteLine($"{stringData}");
+                if (stringData.Contains("Welcome") && Idmodel != "" && IdPLC != "")
+                {
+                }
+                else if (stringData == "User: " && Idmodel != "" && IdPLC != "")
+                {
+                    SendCommand($"admin\r\n");
+                }
+                else if (stringData == "Password: " && Idmodel != "" && IdPLC != "")
+                {
+                    SendCommand($"\r\n");
+                }
+                else if (stringData == "User Logged In\r\n" && Idmodel != "" && IdPLC != "")
+                {
+                    SendCommand($"SO0\r\n");
+                }
+                else if (stringData == "1\r\n" && Idmodel != "" && IdPLC != " ")
+                {
+                    if (StatusChangeJob)
+                    {
+                        StatusChangeJob = false;
+                        StatusSO = true;
+                        SendCommand($"LF{Idmodel}_{IdPLC}.job\r\n");
+                        _StatusJob?.Invoke("Watting", NamePort);
+                    }
+                    else if (StatusSO)
+                    {
+                        StatusSO = false;
+                        SendCommand($"SO1\r\n");
+                    }
+                    else if (StatusChangeJob == false && StatusSO == false)
+                    {
+                        StatusChangeJob = true;
+                        StatusSO = true;
+                        Reconnect(Idmodel, IdPLC, 7890, "", "");
+                        Idmodel = "";
+                        IdPLC = "";
+                        _StatusJob?.Invoke("Success", NamePort);
+                    }
+                }
+                else if (stringData == "2\r\n")
+                {
+                    _StatusJob?.Invoke("Error", NamePort);
+                }
+                else
+                {
+                    string stringSeparators = stringData.TrimEnd('\r', '\n');
+                    string[] lines = stringSeparators.Split(',');
+                    if (lines.Length > 1)
+                    {
+                        Console.WriteLine("CHECK");
+                        if (lines[0] == "GCP" && lines[1] == "1")
+                        {
+                            if (lines.Length >= 5)
+                            {
+                                try
+                                {
+                                    string[] xyaLocal = new string[3];
+                                    var s = lines[2].Split('.');
+                                    xyaLocal[0] = s[0].Trim() + (s.Length > 1 ? s[1].Trim() : "");
+                                    var s2 = lines[3].Split('.');
+                                    xyaLocal[1] = s2[0].Trim() + (s2.Length > 1 ? s2[1].Trim() : "");
+                                    var s3 = lines[4].Split('.');
+                                    xyaLocal[2] = s3[0].Trim() + (s3.Length > 1 ? s3[1].Trim() : "");
+
+                                    // Dequeue lấy đúng station của lệnh GCP này (FIFO).
+                                    // Dùng Queue thay vì nameStation volatile để tránh race
+                                    // khi Station1 và Station2 cùng trigger cam1 gần nhau.
+                                    string stationSnapshot;
+                                    lock (_pendingLock)
+                                    {
+                                        stationSnapshot = _pendingStations.Count > 0
+                                            ? _pendingStations.Dequeue()
+                                            : nameStation;
+                                    }
+                                    _send?.Invoke(xyaLocal, stationSnapshot);
+                                    LogProgram.WriteLog($"PC send Data to {stationSnapshot} Position: {xyaLocal[0]} {xyaLocal[1]} {xyaLocal[2]}");
+                                }
+                                catch (Exception ex)
+                                {
+                                    LogProgram.WriteLog($"[CameraAS] Parse GCP data error: {ex.Message}");
+                                }
+                            }
+                            else
+                            {
+                                LogProgram.WriteLog($"[CameraAS] GCP packet thiếu fields: '{stringSeparators}' (cần >= 5, nhận {lines.Length})");
+                                // Bỏ lệnh này ra khỏi queue để không lệch thứ tự
+                                lock (_pendingLock)
+                                {
+                                    if (_pendingStations.Count > 0) _pendingStations.Dequeue();
+                                }
+                            }
+                        }
+                        else if (lines[0] == "GS" && lines[1] == "1")
+                        {
+                            MessageBox.Show("Calib Hand Eye is running");
+                        }
+                        else if (lines[0] == "HE" && lines[1] == "1")
+                        {
+                            if (CalibStep == 10)
+                            {
+                                MessageBox.Show("Calib Hand Eye is Step 10, Please chose Rotato - ");
+                            }
+                            else if (CalibStep == 11)
+                            {
+                                MessageBox.Show("Calib Hand Eye is Step 11, Please chose Rotato + ");
+                            }
+                            CalibStep++;
+                        }
+                        BeginReceiveNext(sock);
+                        return;
+                    }
+                }
+                BeginReceiveNext(sock);
             }
         }
         catch
@@ -373,9 +396,11 @@ public class CameraAS : IDisposable
             }
         }
     }
-    // FIX Bug D: set nameStation TRƯỚC khi gửi lệnh GCP để tránh race condition
     public void TriggerResult(string s)
     {
+        // Enqueue TRƯỚC SendCommand: camera có thể phản hồi rất nhanh (< 1ms trên LAN)
+        // nếu enqueue sau thì ReceiveData có thể chạy trước khi station được queue.
+        lock (_pendingLock) { _pendingStations.Enqueue(s); }
         nameStation = s;
         SendCommand("GCP,1,HOME2D,0,0,0,0,0,0");
     }
@@ -383,9 +408,9 @@ public class CameraAS : IDisposable
     {
         SendCommand($"LF{Idjob}_{Idjob}.job");
     }
-    // FIX Bug D: set nameStation TRƯỚC khi gửi lệnh GCP
     public void ChangFearture(string s)
     {
+        lock (_pendingLock) { _pendingStations.Enqueue(s); }
         nameStation = s;
         SendCommand("GCP,2,HOME2D,0,0,0,0,0,0");
     }

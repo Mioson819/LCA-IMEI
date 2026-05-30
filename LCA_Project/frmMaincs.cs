@@ -473,105 +473,48 @@ namespace LCA_Project
                 }
                 if (_form1 == null || _form1.IsDisposed)
                 {
+                    // Xóa handler của instance CŨ (đã dispose) trước khi tạo instance mới.
+                    // Nếu không làm bước này, mỗi lần reopen sẽ tích lũy thêm 1 handler ghost
+                    // → khi btnStart invoke _startRead, form đã dispose vẫn được gọi → crash.
+                    UnsubscribeForm(_form1);
                     this._form1 = new Form1(plc, "Station1", 1, cbxPort1.Text?.ToString(), int.Parse(s1[0]), int.Parse(s1[1]), int.Parse(s1[2]), cam1);
                     this._form1.StartPosition = FormStartPosition.Manual;
                     this._form1.Bounds = new System.Drawing.Rectangle(work.Left, work.Top, W, H);
+                    SubscribeForm(_form1);
                     _form1.Show();
-                    _form1._sendName -= StartSend;
-                    _form1._sendName += StartSend;
-                    sendlabel -= _form1.UpdateModel;
-                    sendlabel += _form1.UpdateModel;
-                    _startRead -= _form1.StartRead;
-                    _startRead += _form1.StartRead;
-                    _stopRead -= _form1.StopRead;
-                    _stopRead += _form1.StopRead;
-                    OnMess -= _form1.OnMess;
-                    OnMess += _form1.OnMess;
-                    _frExport.Reset -= _form1.Reset;
-                    _frExport.Reset += _form1.Reset;
-                    _form1.FormClosed += (s, v) =>
-                    {
-                        btnStart.Enabled = false;
-                        btnStart.ForeColor = System.Drawing.Color.Yellow;
-                    };
                     await Task.Delay(500);
                 }
                 //-----------------------------------------------------------------------------------------------------------------------
                 if (_form2 == null || _form2.IsDisposed)
                 {
+                    UnsubscribeForm(_form2);
                     _form2 = new Form1(plc, "Station2", 0, cbxPort2.Text?.ToString(), int.Parse(s2[0]), int.Parse(s2[1]), int.Parse(s2[2]), cam1);
                     this._form2.StartPosition = FormStartPosition.Manual;
                     this._form2.Bounds = new System.Drawing.Rectangle(work.Left + W, work.Top, W, H);
+                    SubscribeForm(_form2);
                     _form2.Show();
-                    _form2._sendName -= StartSend;
-                    _form2._sendName += StartSend;
-                    sendlabel -= _form2.UpdateModel;
-                    sendlabel += _form2.UpdateModel;
-                    _startRead -= _form2.StartRead;
-                    _startRead += _form2.StartRead;
-                    _stopRead -= _form2.StopRead;
-                    _stopRead += _form2.StopRead;
-                    OnMess -= _form2.OnMess;
-                    OnMess += _form2.OnMess;
-                    _frExport.Reset -= _form2.Reset;
-                    _frExport.Reset += _form2.Reset;
-                    _form2.FormClosed += (s, v) =>
-                    {
-                        btnStart.Enabled = false;
-                        btnStart.ForeColor = System.Drawing.Color.Yellow;
-                    };
                     await Task.Delay(500);
                 }
                 //-----------------------------------------------------------------------------------------------------------------------
                 if (_form3 == null || _form3.IsDisposed)
                 {
+                    UnsubscribeForm(_form3);
                     _form3 = new Form1(plc, "Station3", 1, cbxPort3.Text?.ToString(), int.Parse(s3[0]), int.Parse(s3[1]), int.Parse(s3[2]), cam2);
                     this._form3.StartPosition = FormStartPosition.Manual;
                     this._form3.Bounds = new System.Drawing.Rectangle(work.Left, work.Top + H, W, H);
+                    SubscribeForm(_form3);
                     _form3.Show();
-                    _form3._sendName -= StartSend;
-                    _form3._sendName += StartSend;
-                    sendlabel -= _form3.UpdateModel;
-                    sendlabel += _form3.UpdateModel;
-                    _startRead -= _form3.StartRead;
-                    _startRead += _form3.StartRead;
-                    _stopRead -= _form3.StopRead;
-                    _stopRead += _form3.StopRead;
-                    OnMess -= _form3.OnMess;
-                    OnMess += _form3.OnMess;
-                    _frExport.Reset -= _form3.Reset;
-                    _frExport.Reset += _form3.Reset;
-                    _form3.FormClosed += (s, v) =>
-                    {
-                        btnStart.Enabled = false;
-                        btnStart.ForeColor = System.Drawing.Color.Yellow;
-                    };
                     await Task.Delay(500);
                 }
                 //-----------------------------------------------------------------------------------------------------------------------
                 if (_form4 == null || _form4.IsDisposed)
                 {
+                    UnsubscribeForm(_form4);
                     _form4 = new Form1(plc, "Station4", 0, cbxPort4.Text?.ToString(), int.Parse(s4[0]), int.Parse(s4[1]), int.Parse(s4[2]), cam2);
                     this._form4.StartPosition = FormStartPosition.Manual;
                     this._form4.Bounds = new System.Drawing.Rectangle(work.Left + W, work.Top + H, W, H);
+                    SubscribeForm(_form4);
                     _form4.Show();
-                    _form4._sendName -= StartSend;
-                    _form4._sendName += StartSend;
-                    sendlabel -= _form4.UpdateModel;
-                    sendlabel += _form4.UpdateModel;
-                    _startRead -= _form4.StartRead;
-                    _startRead += _form4.StartRead;
-                    _stopRead -= _form4.StopRead;
-                    _stopRead += _form4.StopRead;
-                    OnMess -= _form4.OnMess;
-                    OnMess += _form4.OnMess;
-                    _frExport.Reset -= _form4.Reset;
-                    _frExport.Reset += _form4.Reset;
-                    _form4.FormClosed += (s, v) =>
-                    {
-                        btnStart.Enabled = false;
-                        btnStart.ForeColor = System.Drawing.Color.Yellow;
-                    };
                 }
                 btnStart.Enabled = true;
             }
@@ -638,6 +581,42 @@ namespace LCA_Project
         {
             if (form == null || form.IsDisposed) return;
             try { form.Close(); } catch { }
+        }
+
+        // Xóa TẤT CẢ handler của instance cũ khỏi các multicast delegate.
+        // Phải dùng đúng instance cũ (trước khi gán lại _formX) để -= hoạt động đúng.
+        private void UnsubscribeForm(Form1 form)
+        {
+            if (form == null) return;
+            try { form._sendName -= StartSend; } catch { }
+            try { sendlabel -= form.UpdateModel; } catch { }
+            try { _startRead -= form.StartRead; } catch { }
+            try { _stopRead -= form.StopRead; } catch { }
+            try { OnMess -= form.OnMess; } catch { }
+            try { _frExport.Reset -= form.Reset; } catch { }
+        }
+
+        // Đăng ký handler cho instance mới. FormClosed dùng lambda không tích lũy
+        // vì mỗi lần tạo form mới là một lambda hoàn toàn mới.
+        private void SubscribeForm(Form1 form)
+        {
+            form._sendName -= StartSend;
+            form._sendName += StartSend;
+            sendlabel -= form.UpdateModel;
+            sendlabel += form.UpdateModel;
+            _startRead -= form.StartRead;
+            _startRead += form.StartRead;
+            _stopRead -= form.StopRead;
+            _stopRead += form.StopRead;
+            OnMess -= form.OnMess;
+            OnMess += form.OnMess;
+            _frExport.Reset -= form.Reset;
+            _frExport.Reset += form.Reset;
+            form.FormClosed += (s, v) =>
+            {
+                btnStart.Enabled = false;
+                btnStart.ForeColor = System.Drawing.Color.Yellow;
+            };
         }
 
         private void SWImei_Click(object sender, EventArgs e)
