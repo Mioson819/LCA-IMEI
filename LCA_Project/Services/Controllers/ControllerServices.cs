@@ -87,35 +87,7 @@ namespace LCA_Project.Services.Controllers
                 }
             }
         }
-        //public void StartAutoWriteAllPlc(object sender, EventArgs e) // Write data  Cycle PC => PLC 
-        //{
-        //    foreach (var kv in Controllers)
-        //    {
-        //        string plcName = kv.Key;
-        //        var client = kv.Value;
-        //        Task.Run(async () =>
-        //        {
-        //            try
-        //            {
-        //                await Task.Delay(3000);
-        //                var rowData = DatabasePLCs.Instance.GetPlcRowByName(plcName);
-        //                foreach (var map in Variable_Word.ColumnToRegisterMap)
-        //                {
-        //                    string column = map.Key;
-        //                    string register = map.Value;
-        //                    if (rowData.TryGetValue(column, out object rawVal) && int.TryParse(rawVal?.ToString(), out int value))
-        //                    {
-        //                        client.WriteUInt16(register, (ushort)value);
-        //                    }
-        //                }
-        //            }
-        //            catch (Exception ex)
-        //            {
-        //                MessageBox.Show($"Error writing to PLC {plcName}: {ex.Message}", "PLC Write Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-        //            }
-        //        });
-        //    }
-        //}
+
         private void UpdateStatus(object sender, bool status) // Update Alarm Cycle : frmAlarm
         {
             System.Windows.Forms.Label label = sender as System.Windows.Forms.Label;
@@ -134,34 +106,7 @@ namespace LCA_Project.Services.Controllers
                 }));
             }
         }
-        // Data Axis View
-        //public void StartAutoReadAllPlcDataAxis() // Update Alarm Cycle : frmControleersDeviceDataAxis
-        //{
-        //    //Console.WriteLine(Variable_Bit.StateBitMap.Count);
-        //    foreach (var kv in Controllers)
-        //    {
-        //        if (kv.Key == name)
-        //        {
-        //            Task.Run(async () =>
-        //            {
-        //                while (!_ctsDataAxis.Token.IsCancellationRequested)
-        //                {
-        //                    try
-        //                    {
-        //                        string value = kv.Value.ReadUInt16(tag).ToString();
-        //                        UpdateStatusTextBox(sender, value);
-        //                    }
-        //                    catch (Exception ex)
-        //                    {
-        //                        MessageBox.Show($"Error reading from PLC: {ex.Message}", "PLC Read Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-        //                    }
-        //                    await Task.Delay(50);
-        //                    //  Console.WriteLine(Variable_Bit.StateBitMap.Count);
-        //                }
-        //            }, _ctsDataAxis.Token);
-        //        }
-        //    }
-        //}
+
         private void UpdateStatusTextBox(object sender, string value) // Update Alarm Cycle : frmAlarm
         {
             Guna2TextBox textBox = sender as Guna2TextBox;

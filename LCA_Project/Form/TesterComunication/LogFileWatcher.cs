@@ -73,6 +73,10 @@ namespace LCA_Project.Form.TesterComunication
 
         public void Start()
         {
+            // BUG 5 FIX: cancel task cũ nếu Start() bị gọi nhiều lần
+            ctsCopy?.Cancel();
+            try { copyTask?.Wait(500); } catch { }
+
             if (!Directory.Exists(Path.GetDirectoryName(localPath)))
                 Directory.CreateDirectory(Path.GetDirectoryName(localPath));
 

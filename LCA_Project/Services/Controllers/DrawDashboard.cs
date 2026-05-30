@@ -2,7 +2,7 @@
 using Guna.UI2.WinForms;
 using LCA_Project.Database;
 using LCA_Project.Form.Devices.Controllers;
-using LCA_Project.Form.Resources;
+
 using LCA_Project.Utilities;
 using System;
 using System.Collections.Generic;
@@ -23,8 +23,8 @@ namespace LCA_Project.Services.Controllers
         private Guna2GradientButton btnFix;
         private Guna2GradientButton btnSetting;
         private frmControllersParameter _frmControllersParameter;
-        private FrmSettingController _frmSettingController;
-        private frmResources _frmResources;
+       
+       
         private TypeDatabase _typeDatabase;
         public delegate void sendController(System.Windows.Forms.Control control);
         public event sendController onSendController;
@@ -78,14 +78,11 @@ namespace LCA_Project.Services.Controllers
                         {
                             if (ev.RowIndex >= 0 && ev.ColumnIndex == 2)
                             {
-                                _frmResources = new frmResources();
-                                _frmResources.Show();
+                               
+                              
                                 indexRows = ev.RowIndex;
                                 indexCell = ev.ColumnIndex;
-                                _frmResources.onimgselected += (img) =>
-                                {
-                                    dgvtParameter.Rows[indexRows].Cells[indexCell].Value = img;
-                                };
+
                             }
                         };
                         btnSave.Click += sendControls;

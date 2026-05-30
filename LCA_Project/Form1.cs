@@ -4,11 +4,11 @@ using Guna.UI2.AnimatorNS;
 using Guna.UI2.WinForms;
 using LCA_Project.Database;
 using LCA_Project.Form;
-using LCA_Project.Form.Devices.Cameras;
+
 using LCA_Project.Form.Devices.Controllers;
 using LCA_Project.Form.frmAlarm;
 using LCA_Project.Form.frmResult;
-using LCA_Project.Form.Resources;
+
 using LCA_Project.Form.Signal;
 using LCA_Project.Form.Teaching;
 using LCA_Project.Form.TesterComunication;
@@ -32,21 +32,17 @@ namespace LCA_Project
     {
         // ====== Forms / UI ======
         private frmOldResult _frmOldResult;
-        private Guna2Transition transition;
-        private frmControllersParameter frmControllers;
+        //private Guna2Transition transition;
+        //private frmControllersParameter frmControllers;
         private frmControllers frmControllersMain;
-        private frmMultiSignal frmMultiSignal;
-        private frmResources frmResources;
-        private FrmSettingController frmSettingController;
+        //private frmMultiSignal frmMultiSignal;
+     
+        //private FrmSettingController frmSettingController;
         private ucButtonDisplayGrid<DataforUnload> _Unload;
         private ucButtonDisplayGrid<Dataforload> _Load;
         private ucButtonDisplayGrid<DataforloadImei> _Load2;
         private ucButtonDisplayGrid<DataforNG4> _NG4;
-        private CameraAS cam;
-        private frmTeaching frmTeaching;
-        private frmTeachingCamera frmTeachingCamera;
-        private frmCurPos _frmCurPos;
-        private frmSekectPos _frmSelected;
+        //private CameraAS cam;
         private frmAlarm _frmAlarm;
         private frmControl _frmControl;           // frmControl đang mở (nếu có)
         private KeyenceHostLinkTcpClient plc;
@@ -203,10 +199,10 @@ namespace LCA_Project
             get { return _NameStation; }
             set
             {
-                if (value == "Station1") _NameStation = "PORT1";
-                else if (value == "Station2") _NameStation = "PORT2";
-                else if (value == "Station3") _NameStation = "PORT3";
-                else if (value == "Station4") _NameStation = "PORT4";
+                if (value == "Station1") _NameStation = "Port1";
+                else if (value == "Station2") _NameStation = "Port2";
+                else if (value == "Station3") _NameStation = "Port3";
+                else if (value == "Station4") _NameStation = "Port4";
                 else _NameStation = value;
             }
         }
@@ -562,6 +558,7 @@ namespace LCA_Project
                             _frmAlarm = new frmAlarm(s, this.plc, this.nameStation);
                             _frmAlarm.Location = new Point(this.Location.X, this.Location.Y);
                             _frmAlarm.Model = lblModel.Text.ToString();
+                            _frmAlarm.PcType = logWatcher?.PcType ?? "Nano";
                             _frmAlarm.Show();
                         }));
                         LogProgram.MesWriteLog("Alarm: " + s, this.Nametation);
@@ -1078,11 +1075,6 @@ namespace LCA_Project
             frmControllersMain.Show();
         }
 
-        private void guna2ImageButton3_Click(object sender, EventArgs e)
-        {
-            frmResources = new frmResources();
-            frmResources.Show();
-        }
 
         private void guna2GradientButton14_Click(object sender, EventArgs e)
         {
@@ -1180,23 +1172,10 @@ namespace LCA_Project
             }
         }
 
-        private void guna2GradientButton1_Click(object sender, EventArgs e)
-        {
-            frmTeachingCamera = new frmTeachingCamera();
-            frmTeachingCamera.Show();
-        }
 
-        private void Guna2GradientButton21_Click(object sender, EventArgs e, int i)
-        {
-            _frmCurPos = new frmCurPos(this.nameStation, this.plc);
-            _frmCurPos.Show();
-        }
 
-        private void guna2GradientButton21_Click(object sender, EventArgs e)
-        {
-            _frmCurPos = new frmCurPos(this.nameStation, this.plc);
-            _frmCurPos.Show();
-        }
+
+
 
         // ====== ChangeModeTrayInput: toggle bit PLC rồi đóng form ======
         private async void ChangeModeTrayInput_Click(object sender, EventArgs e)

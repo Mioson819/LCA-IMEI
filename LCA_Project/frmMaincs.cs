@@ -22,13 +22,13 @@ namespace LCA_Project
     {
         // private CameraAS cam;
         private frmExport _frExport;
-        private Form1 form1;
+        //private Form1 form1;
         public static string[] arraySetiing;
         private static string file_path_setting = System.IO.Path.GetDirectoryName(System.Windows.Forms.Application.ExecutablePath) + @"\setting.txt";
         private frmControllers frmControllersMain;
         private KeyenceHostLinkTcpClient plc;
         public delegate void SendResult(string s);
-        public event SendResult _sendResult;
+       // public event SendResult _sendResult;
         private frmSignal _frmSignal;
         private CameraAS cam1;
         private CameraAS cam2;
@@ -39,7 +39,7 @@ namespace LCA_Project
         private event StartRead sendlabel;
         private event EventHandler OnMess;
         private Action _action;
-        private frmUser _frmUser;
+        //private frmUser _frmUser;
         private Form1 _form1;
         private Form1 _form2;
         private Form1 _form3;

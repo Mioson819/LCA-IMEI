@@ -38,11 +38,14 @@ namespace LCA_Project.Form.Signal
         }
         private string ServerFolder(string nameStation)
         {
-            //if (LogFileWatcher.OffMess) return DatabaseControllers.Instance.LoadDataFolder(Model, this.Nametation); 
-            //else
-            //{
-            return Path.Combine(DatabaseControllers.Instance.LoadDataFolder(Model, this.Nametation), $"{DateTime.Now.Year.ToString()}", $"{DateTime.Now.Month.ToString("D2")}");
-            // }
+            string baseFolder = DatabaseControllers.Instance.LoadDataFolder(Model, this.Nametation);
+            if (IsNano)
+                // Nano: thêm subfolder năm/tháng
+                return Path.Combine(baseFolder,
+                    DateTime.Now.Year.ToString(),
+                    DateTime.Now.Month.ToString("D2"));
+            // Pamtech: dùng path gốc
+            return baseFolder;
         }
         private string _NameStation { get; set; }
         public string Nametation
@@ -63,7 +66,7 @@ namespace LCA_Project.Form.Signal
         private KeyenceHostLinkTcpClient plc { get; set; }
         private string nameStation { get; set; }
         private Type type { get; set; }
-        private CancellationTokenSource _cts;
+        //private CancellationTokenSource _cts;
         public frmAlarm(string s, KeyenceHostLinkTcpClient plc, string station)
         {
             this.plc = plc;
