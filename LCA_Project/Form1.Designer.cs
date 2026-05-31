@@ -1551,7 +1551,6 @@
             this.tableLayoutPanel18.PerformLayout();
             this.tableLayoutPanel19.ResumeLayout(false);
             this.ResumeLayout(false);
-
         }
         #endregion
         private System.Windows.Forms.TableLayoutPanel tableLayoutPanel1;

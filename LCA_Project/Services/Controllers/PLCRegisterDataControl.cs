@@ -202,7 +202,6 @@ namespace Bottom_Sorting.Services.Controllers
                         // Snapshot để không giữ lock trong suốt vòng lặp PLC (tránh deadlock)
                         ButtonBinding[] snapshot;
                         lock (_bindingsLock) { snapshot = new List<ButtonBinding>(_bindings.Values).ToArray(); }
-
                         foreach (var item in snapshot)
                         {
                             if (token.IsCancellationRequested) break;

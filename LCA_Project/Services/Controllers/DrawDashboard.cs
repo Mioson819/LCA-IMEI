@@ -2,7 +2,6 @@
 using Guna.UI2.WinForms;
 using LCA_Project.Database;
 using LCA_Project.Form.Devices.Controllers;
-
 using LCA_Project.Utilities;
 using System;
 using System.Collections.Generic;
@@ -23,8 +22,6 @@ namespace LCA_Project.Services.Controllers
         private Guna2GradientButton btnFix;
         private Guna2GradientButton btnSetting;
         private frmControllersParameter _frmControllersParameter;
-       
-       
         private TypeDatabase _typeDatabase;
         public delegate void sendController(System.Windows.Forms.Control control);
         public event sendController onSendController;
@@ -33,10 +30,8 @@ namespace LCA_Project.Services.Controllers
         private int indexRows { get; set; }
         private int indexCell { get; set; }
         private string _nameDatabase { get; set; }
-
         // Giá trị hợp lệ cho cột PcType — thêm/bớt ở đây nếu sau này có loại mới
         private static readonly string[] PcTypeValues = { "Nano", "Pamtech" };
-
         public DrawDashboard(string NameDatabase, Guna2Panel panel)
         {
             CreateDashboard(NameDatabase, panel, null);
@@ -78,11 +73,8 @@ namespace LCA_Project.Services.Controllers
                         {
                             if (ev.RowIndex >= 0 && ev.ColumnIndex == 2)
                             {
-                               
-                              
                                 indexRows = ev.RowIndex;
                                 indexCell = ev.ColumnIndex;
-
                             }
                         };
                         btnSave.Click += sendControls;
@@ -182,27 +174,22 @@ namespace LCA_Project.Services.Controllers
             btnRemoveRegisters.Click += RemoveRegisters;
             btnSave.Click += SaveDatabase;
         }
-
         // ── PcType ComboBox ──────────────────────────────────────────────────────
         // Áp dụng cho bất kỳ bảng nào có cột "PcType" (FolderPort, ControllerTag)
         // Gọi sau khi LoadDatabase() đã bind DataSource
         private void SetupPcTypeCombo()
         {
             if (!dgvtParameter.Columns.Contains("PcType")) return;
-
             int index = dgvtParameter.Columns["PcType"].Index;
             dgvtParameter.Columns.Remove("PcType");
-
             var col = new DataGridViewComboBoxColumn();
             col.Name = "PcType";
             col.HeaderText = "PcType";
             col.DataPropertyName = "PcType";
             col.FlatStyle = FlatStyle.Flat;
             col.Items.AddRange(PcTypeValues);   // "Nano", "Pamtech"
-
             dgvtParameter.Columns.Insert(index, col);
         }
-
         private void dgvtParameter_CellClick(object sender, DataGridViewCellEventArgs e)
         {
             string colName = dgvtParameter.Columns[dgvtParameter.CurrentCell.ColumnIndex].Name;
@@ -361,7 +348,6 @@ namespace LCA_Project.Services.Controllers
             dgvtParameter.Columns.Insert(indexnY, nY);
             dgvtParameter.Columns.Insert(indexnYNG4, NG4);
             dgvtParameter.Columns.Insert(indexMODEL, IdModel);
-
             // PcType ComboBox — thêm sau khi các cột số đã insert xong
             SetupPcTypeCombo();
         }

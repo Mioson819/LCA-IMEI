@@ -355,7 +355,6 @@ namespace Bottom_Sorting.Services.Utilities
                 catch (Exception ex) { LogProgram.WriteLog($"[Load] {ex.Message}"); }
             }
         }
-
         /// <summary>
         /// Loop dành riêng cho DataforloadImei có cột TakePointOK (mode 2 tray IMEI).
         /// Chỉ theo dõi tín hiệu TakePointOK — khi PLC bật bit này, robot đã đặt sản phẩm
@@ -403,7 +402,6 @@ namespace Bottom_Sorting.Services.Utilities
                 SafeUI(() => UpdateLabel((int)x, (int)y, 0, 0));
             }
         }
-
         public void UpdateLabel(int row, int colums, int classify, int Out)
         {
             try

@@ -306,7 +306,6 @@ namespace LCA_Project.Form
             {
                 return DataTypeEvent.Mounse;
             }
-
             else
             {
                 return DataTypeEvent.None;
@@ -364,7 +363,6 @@ namespace LCA_Project.Form
             // Khoá mặc định khi load — chỉ mở khi admin xác thực qua frmLotoImei
             RqSensorDoor.Enabled = false;
         }
-
         /// <summary>
         /// Được gọi từ Form1.SetAdminButtons() để mở/khoá nút RqSensorDoor.
         /// Thread-safe: có thể gọi từ bất kỳ thread nào.

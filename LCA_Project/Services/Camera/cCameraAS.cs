@@ -180,7 +180,6 @@ public class CameraAS : IDisposable
                     DisconnectSocketOnly();
                     return;
                 }
-
                 string stringData = Encoding.ASCII.GetString(localBuffer, 0, bytesRead);
                 Console.WriteLine($"{stringData}");
                 if (stringData.Contains("Welcome") && Idmodel != "" && IdPLC != "")
@@ -246,7 +245,6 @@ public class CameraAS : IDisposable
                                     xyaLocal[1] = s2[0].Trim() + (s2.Length > 1 ? s2[1].Trim() : "");
                                     var s3 = lines[4].Split('.');
                                     xyaLocal[2] = s3[0].Trim() + (s3.Length > 1 ? s3[1].Trim() : "");
-
                                     // Dequeue lấy đúng station của lệnh GCP này (FIFO).
                                     // Dùng Queue thay vì nameStation volatile để tránh race
                                     // khi Station1 và Station2 cùng trigger cam1 gần nhau.

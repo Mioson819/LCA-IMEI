@@ -5,13 +5,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using LCA_Project.Database;
-
 namespace LCA_Project.Form.TesterComunication
 {
     public class LogFileWatcher
     {
         public string serverFolder { get; set; }
-
         // ── PcType ─────────────────────────────────────────────────────────────
         // Thay thế biến static OffMess.
         // "Nano"    → OffMess = true  (subfolder năm/tháng, pattern *.log)
@@ -24,10 +22,8 @@ namespace LCA_Project.Form.TesterComunication
             get => _pcType;
             set => _pcType = (value ?? "Nano").Trim();
         }
-
         // OffMess tương đương: true khi Nano, false khi Pamtech
         private bool IsNano => string.Equals(_pcType, "Nano", StringComparison.OrdinalIgnoreCase);
-
         // ── ServerFolder & filePattern — logic giữ nguyên, chỉ đổi nguồn biến ──
         private string ServerFolder(string path)
         {
@@ -36,7 +32,6 @@ namespace LCA_Project.Form.TesterComunication
                 DateTime.Now.Year.ToString(),
                 DateTime.Now.Month.ToString("D2"));  // Nano → path/năm/tháng
         }
-
         private string filePattern
         {
             get
@@ -46,7 +41,6 @@ namespace LCA_Project.Form.TesterComunication
                 return $"{DateTime.Now.Year}" + "*.log";                               // Nano
             }
         }
-
         private readonly string localPath;
         private long lastPosition = 0;
         private readonly object lockObj = new object();
@@ -54,32 +48,26 @@ namespace LCA_Project.Form.TesterComunication
         private Task copyTask;
         private static readonly object Lock = new object();
         private string[] lastValidLine;
-
         public event Action<ushort> OnNewLineRead;
-
         public LogFileWatcher(string serverFolder, string localPath)
         {
             this.serverFolder = serverFolder;
             this.localPath = localPath;
             DeleteFile(this, EventArgs.Empty);
         }
-
         // Constructor tiện lợi — truyền PcType thẳng khi khởi tạo
         public LogFileWatcher(string serverFolder, string localPath, string pcType)
             : this(serverFolder, localPath)
         {
             PcType = pcType;
         }
-
         public void Start()
         {
             // BUG 5 FIX: cancel task cũ nếu Start() bị gọi nhiều lần
             ctsCopy?.Cancel();
             try { copyTask?.Wait(500); } catch { }
-
             if (!Directory.Exists(Path.GetDirectoryName(localPath)))
                 Directory.CreateDirectory(Path.GetDirectoryName(localPath));
-
             ctsCopy = new CancellationTokenSource();
             copyTask = Task.Run(async () =>
             {
@@ -92,7 +80,6 @@ namespace LCA_Project.Form.TesterComunication
                             await Task.Delay(2000, ctsCopy.Token);
                             continue;
                         }
-
                         string[] files;
                         try
                         {
@@ -103,13 +90,11 @@ namespace LCA_Project.Form.TesterComunication
                             await Task.Delay(2000, ctsCopy.Token);
                             continue;
                         }
-
                         if (files.Length == 0)
                         {
                             await Task.Delay(2000, ctsCopy.Token);
                             continue;
                         }
-
                         var newestFile = files.Select(f => new FileInfo(f))
                                               .OrderByDescending(f => f.CreationTime)
                                               .First();
@@ -133,12 +118,10 @@ namespace LCA_Project.Form.TesterComunication
                         }
                     }
                     catch { }
-
                     await Task.Delay(2000, ctsCopy.Token);
                 }
             }, ctsCopy.Token);
         }
-
         private void ParseNewLines()
         {
             lock (lockObj)
@@ -152,13 +135,10 @@ namespace LCA_Project.Form.TesterComunication
                         fs.Seek(lastPosition, SeekOrigin.Begin);
                         string newText = sr.ReadToEnd();
                         lastPosition = fs.Position;
-
                         if (string.IsNullOrWhiteSpace(newText)) return;
-
                         string[] newLines = newText.Split(
                             new[] { Environment.NewLine },
                             StringSplitOptions.RemoveEmptyEntries);
-
                         for (int i = newLines.Length - 1; i >= 0; i--)
                         {
                             string line = newLines[i];
@@ -204,7 +184,6 @@ namespace LCA_Project.Form.TesterComunication
                 catch { }
             }
         }
-
         public void DeleteFile(object sender, EventArgs ev)
         {
             try
@@ -218,7 +197,6 @@ namespace LCA_Project.Form.TesterComunication
             catch (IOException) { }
             catch (Exception) { }
         }
-
         public void Dispose()
         {
             ctsCopy?.Cancel();

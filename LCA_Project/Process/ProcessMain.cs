@@ -15,29 +15,23 @@ using static Guna.UI2.Native.WinApi;
 using LCA_Project.Utilities;
 using System.Collections;
 using System.ComponentModel;
-
 namespace LCA_Samsung.Process
 {
     public class ProcessMain
     {
         public Dictionary<string, Dictionary<string, ButtonSignal<Guna2CircleButton>>> _Signal
             = new Dictionary<string, Dictionary<string, ButtonSignal<Guna2CircleButton>>>();
-
         // Map: station ("Station1".."Station4") → danh sách địa chỉ PLC
         // Build từ register.Key (chứa tên station) — không dùng NameSignal.get
         private readonly Dictionary<string, List<string>> _stationAddressMap
             = new Dictionary<string, List<string>>();
-
         private static readonly object _lock = new object();
         private static ProcessMain _instance;
-
         // Mỗi station có CTS riêng — dừng đúng station, không ảnh hưởng station khác
         private readonly Dictionary<string, CancellationTokenSource> _ctsMap
             = new Dictionary<string, CancellationTokenSource>();
-
         // Giữ tương thích với code cũ còn tham chiếu _cts
         public CancellationTokenSource _cts => _ctsMap.Values.FirstOrDefault();
-
         public static ProcessMain Instance
         {
             get
@@ -50,23 +44,18 @@ namespace LCA_Samsung.Process
                 }
             }
         }
-
         private ProcessMain() { }
-
         public async Task Initialize()
         {
             await InitializeSignalTable();
         }
-
         private async Task InitializeSignalTable()
         {
             StopAllSignalRead();
             _Signal.Clear();
             _stationAddressMap.Clear();
-
             // BUG 1 FIX: gọi DB một lần duy nhất, dùng lại cho cả _stationAddressMap và _Signal
             var registers = DatabaseControllers.Instance.GetRegister_ControllerParameterInputs();
-
             // Build _stationAddressMap từ register.Key (chứa "Station1".."Station4")
             // register.Key   = tên signal, vd "Station1_Input_X"
             // register.Value = địa chỉ PLC, vd "DM100.1"
@@ -78,13 +67,11 @@ namespace LCA_Samsung.Process
                 else if (register.Key.Contains("Station3")) stationKey = "Station3";
                 else if (register.Key.Contains("Station4")) stationKey = "Station4";
                 if (stationKey == null) continue;
-
                 if (!_stationAddressMap.ContainsKey(stationKey))
                     _stationAddressMap[stationKey] = new List<string>();
                 if (!_stationAddressMap[stationKey].Contains(register.Value))
                     _stationAddressMap[stationKey].Add(register.Value);
             }
-
             // Build _Signal — mỗi controller dùng cùng tập registers đã đọc
             List<Task> allTasks = new List<Task>();
             foreach (var kv in ControllerServices.Instance.Controllers)
@@ -116,14 +103,12 @@ namespace LCA_Samsung.Process
             }
             await Task.WhenAll(allTasks);
         }
-
         // Đọc signal chỉ cho station đang hiển thị
         // controllerName: key trong _Signal (vd "LCA")
         // station: "Station1" | "Station2" | "Station3" | "Station4"
         public void StartReadStation(string controllerName, string station)
         {
             StopReadStation(station);
-
             // BUG 2 FIX: _Signal được build với key = controllerName từ ControllerServices
             // btnAlarm_Click dùng key "LCA" — phải khớp với Name trong bảng Controllers DB
             if (!_Signal.TryGetValue(controllerName, out var signalDict) || signalDict == null)
@@ -131,7 +116,6 @@ namespace LCA_Samsung.Process
                 LogProgram.WriteLog($"[Signal] Controller '{controllerName}' không tìm thấy trong _Signal");
                 return;
             }
-
             var plcEntry = ControllerServices.Instance.Controllers
                 .Where(x => x.Key == controllerName).FirstOrDefault();
             if (plcEntry.Value == null)
@@ -140,27 +124,22 @@ namespace LCA_Samsung.Process
                 return;
             }
             var plc = plcEntry.Value;
-
             if (!_stationAddressMap.TryGetValue(station, out var addressList) || addressList.Count == 0)
             {
                 LogProgram.WriteLog($"[Signal] Không có địa chỉ nào cho {station}");
                 return;
             }
-
             var signalsForStation = addressList
                 .Where(addr => signalDict.ContainsKey(addr))
                 .Select(addr => new KeyValuePair<string, ButtonSignal<Guna2CircleButton>>(addr, signalDict[addr]))
                 .ToList();
-
             if (signalsForStation.Count == 0)
             {
                 LogProgram.WriteLog($"[Signal] Không match signal nào cho {station}");
                 return;
             }
-
             var cts = new CancellationTokenSource();
             lock (_lock) { _ctsMap[station] = cts; }
-
             // Capture token cục bộ để Task.Delay không ném exception ra ngoài catch
             var token = cts.Token;
             Task.Run(async () =>
@@ -188,7 +167,6 @@ namespace LCA_Samsung.Process
                         await Task.Delay(500).ConfigureAwait(false);
                         continue;
                     }
-
                     // BUG 7 FIX: UpdateSignal cập nhật Guna2CircleButton — phải marshal về UI thread
                     // Dùng Application.OpenForms để lấy form đang hiển thị mà không giữ reference cứng
                     if (readings.Count > 0)
@@ -209,13 +187,11 @@ namespace LCA_Samsung.Process
                             catch (Exception) { /* form đóng giữa chừng — bỏ qua */ }
                         }
                     }
-
                     await Task.Delay(200).ConfigureAwait(false);
                 }
                 LogProgram.WriteLog($"[Signal] Dừng đọc {station}");
             });
         }
-
         public void StopReadStation(string station)
         {
             lock (_lock)
@@ -227,7 +203,6 @@ namespace LCA_Samsung.Process
                 }
             }
         }
-
         public void StopAllSignalRead()
         {
             lock (_lock)
@@ -237,7 +212,6 @@ namespace LCA_Samsung.Process
                 _ctsMap.Clear();
             }
         }
-
         // Tương thích với code cũ — mặc định đọc Station1
         public void StartAutoReadSignalPLC(string name)
         {

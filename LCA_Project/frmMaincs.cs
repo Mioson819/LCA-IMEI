@@ -235,9 +235,7 @@ namespace LCA_Project
                 _frmSignal.BringToFront();
                 return;
             }
-
             await ProcessMain.Instance.Initialize();
-
             // BUG 2 FIX: key của _Signal = Name từ bảng Controllers trong DB
             // Nếu DB lưu tên là "LCA" thì khớp; nếu không tìm thấy → log và thoát
             var kvSignal = ProcessMain.Instance._Signal
@@ -248,7 +246,6 @@ namespace LCA_Project
                     "Signal Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
-
             _frmSignal = new frmSignal(kvSignal.Value, "LCA");
             _frmSignal.FormClosed += (s, v) => _frmSignal = null;
             _frmSignal.Show();
@@ -353,7 +350,6 @@ namespace LCA_Project
                 sendlabel?.Invoke(label);
                 _startRead?.Invoke(values);
                 btnStart.ForeColor = System.Drawing.Color.Green;
-
             }
             else
             {
@@ -365,7 +361,6 @@ namespace LCA_Project
         {
             Port1 = DatabaseControllers.Instance.IdModel("Port1", cbxPort1.Text.ToString());
             lblIdPort1.Text = Port1;
-
             if ((_form1 == null || _form1.IsDisposed) && !string.IsNullOrEmpty(Port1))
             {
                 try
@@ -386,7 +381,6 @@ namespace LCA_Project
         {
             Port2 = DatabaseControllers.Instance.IdModel("Port2", cbxPort2.Text.ToString());
             lblIdPort2.Text = Port2;
-
             if ((_form2 == null || _form2.IsDisposed) && !string.IsNullOrEmpty(Port2))
             {
                 try
@@ -407,7 +401,6 @@ namespace LCA_Project
         {
             Port3 = DatabaseControllers.Instance.IdModel("Port3", cbxPort3.Text.ToString());
             lblIdPort3.Text = Port3;
-
             if ((_form3 == null || _form3.IsDisposed) && !string.IsNullOrEmpty(Port3))
             {
                 try
@@ -428,7 +421,6 @@ namespace LCA_Project
         {
             Port4 = DatabaseControllers.Instance.IdModel("Port4", cbxPort4.Text.ToString());
             lblIdPort4.Text = Port4;
-
             if ((_form4 == null || _form4.IsDisposed) && !string.IsNullOrEmpty(Port4))
             {
                 try
@@ -523,8 +515,6 @@ namespace LCA_Project
                 System.Windows.Forms.MessageBox.Show("Ban Chua Chon Model Port ");
             }
         }
-
-
         private void guna2Button1_Click(object sender, EventArgs e)
         {
             cbxPort1.Items.Clear();
@@ -575,14 +565,12 @@ namespace LCA_Project
             );
             loto.Show();
         }
-
         // Helper: đóng an toàn 1 Form1, bỏ qua nếu null hoặc đã bị dispose
         private void CloseForm(Form1 form)
         {
             if (form == null || form.IsDisposed) return;
             try { form.Close(); } catch { }
         }
-
         // Xóa TẤT CẢ handler của instance cũ khỏi các multicast delegate.
         // Phải dùng đúng instance cũ (trước khi gán lại _formX) để -= hoạt động đúng.
         private void UnsubscribeForm(Form1 form)
@@ -595,7 +583,6 @@ namespace LCA_Project
             try { OnMess -= form.OnMess; } catch { }
             try { _frExport.Reset -= form.Reset; } catch { }
         }
-
         // Đăng ký handler cho instance mới. FormClosed dùng lambda không tích lũy
         // vì mỗi lần tạo form mới là một lambda hoàn toàn mới.
         private void SubscribeForm(Form1 form)
@@ -618,7 +605,6 @@ namespace LCA_Project
                 btnStart.ForeColor = System.Drawing.Color.Yellow;
             };
         }
-
         private void SWImei_Click(object sender, EventArgs e)
         {
             // Kiểm tra còn form nào đang mở không
@@ -626,7 +612,6 @@ namespace LCA_Project
                         || (_form2 != null && !_form2.IsDisposed)
                         || (_form3 != null && !_form3.IsDisposed)
                         || (_form4 != null && !_form4.IsDisposed);
-
             if (anyOpen)
             {
                 var confirmClose = System.Windows.Forms.MessageBox.Show(
@@ -634,16 +619,13 @@ namespace LCA_Project
                     "Warning",
                     MessageBoxButtons.YesNo,
                     MessageBoxIcon.Warning);
-
                 if (confirmClose != DialogResult.Yes) return;
-
                 // Đóng cả 4 form (dùng if riêng biệt, KHÔNG dùng else if)
                 CloseForm(_form1);
                 CloseForm(_form2);
                 CloseForm(_form3);
                 CloseForm(_form4);
             }
-
             // Hỏi xác nhận đổi Mode
             var rsSWimei = System.Windows.Forms.MessageBox.Show(
                 "Do you confirm Change Mode Imei ?" + Environment.NewLine +
@@ -652,7 +634,6 @@ namespace LCA_Project
                 "Warning",
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Warning);
-
             switch (rsSWimei)
             {
                 case DialogResult.Yes:
@@ -679,7 +660,6 @@ namespace LCA_Project
                         LogProgram.WriteLog("Fail To Set SWImei: " + ex.Message);
                     }
                     break;
-
                 case DialogResult.No:
                     try
                     {
@@ -689,7 +669,6 @@ namespace LCA_Project
                             SWImei.FillColor = System.Drawing.Color.Red;
                             SWImei.Text = "Mode: LCA Module";
                             modeimei = false;
-                          
                         }
                         else
                         {

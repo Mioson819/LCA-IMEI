@@ -135,7 +135,6 @@ namespace Project_Visionpro.Program.PLC
                 _timer.Start();
             }
         }
-
         private void MarkConnected()
         {
             _reconnectPending = false;
@@ -145,7 +144,6 @@ namespace Project_Visionpro.Program.PLC
             PropertyChangedEvent($"{Tcpstatus.connected}");
             IsSessionStarted = true;
         }
-
         // FIX PLC-2: helper xử lý response disconnect/reconnect — dùng chung cho tất cả Write
         private void HandleWriteResponse(string response)
         {
