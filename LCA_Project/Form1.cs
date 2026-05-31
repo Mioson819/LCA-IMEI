@@ -1128,7 +1128,6 @@ namespace LCA_Project
         private void SetEmptyWork_Click(object sender, EventArgs e)
         {
             if (_Load != null) _Load.SetEmptyLoad();
-            if (_Load2 != null) _Load2.SetEmptyLoad();  // IMEI mode 2 tray
         }
 
         private void ResetCompelete_Click(object sender, EventArgs e)
@@ -1145,6 +1144,7 @@ namespace LCA_Project
         private void SetEmptyCompelete_Click(object sender, EventArgs e)
         {
             if (_Unload != null) _Unload.SetEmptyUnLoad();
+            if (_Load2 != null) _Load2.SetEmptyLoad();  // IMEI mode 2 tray: pnlUnload về vàng
         }
 
         private void ModifyWork_Click(object sender, EventArgs e)
