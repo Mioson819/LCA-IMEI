@@ -49,6 +49,7 @@ namespace LCA_Project
         private frmWatting _frmWatting;
         private System.Timers.Timer timer;
         public static bool modeimei = true;
+        private bool _isReading = false;
         public frmMaincs()
         {
             InitializeComponent();
@@ -349,10 +350,12 @@ namespace LCA_Project
                 label.Add("Station4", cbxPort4.SelectedItem?.ToString());
                 sendlabel?.Invoke(label);
                 _startRead?.Invoke(values);
+                _isReading = true;
                 btnStart.ForeColor = System.Drawing.Color.Green;
             }
             else
             {
+                _isReading = false;
                 btnStart.ForeColor = System.Drawing.Color.Gray;
                 _stopRead?.Invoke(this, new EventArgs());
             }
@@ -474,6 +477,7 @@ namespace LCA_Project
                     this._form1.Bounds = new System.Drawing.Rectangle(work.Left, work.Top, W, H);
                     SubscribeForm(_form1);
                     _form1.Show();
+                    AutoResumeForm(_form1);
                     await Task.Delay(500);
                 }
                 //-----------------------------------------------------------------------------------------------------------------------
@@ -485,6 +489,7 @@ namespace LCA_Project
                     this._form2.Bounds = new System.Drawing.Rectangle(work.Left + W, work.Top, W, H);
                     SubscribeForm(_form2);
                     _form2.Show();
+                    AutoResumeForm(_form2);
                     await Task.Delay(500);
                 }
                 //-----------------------------------------------------------------------------------------------------------------------
@@ -496,6 +501,7 @@ namespace LCA_Project
                     this._form3.Bounds = new System.Drawing.Rectangle(work.Left, work.Top + H, W, H);
                     SubscribeForm(_form3);
                     _form3.Show();
+                    AutoResumeForm(_form3);
                     await Task.Delay(500);
                 }
                 //-----------------------------------------------------------------------------------------------------------------------
@@ -507,6 +513,7 @@ namespace LCA_Project
                     this._form4.Bounds = new System.Drawing.Rectangle(work.Left + W, work.Top + H, W, H);
                     SubscribeForm(_form4);
                     _form4.Show();
+                    AutoResumeForm(_form4);
                 }
                 btnStart.Enabled = true;
             }
@@ -564,6 +571,29 @@ namespace LCA_Project
                 }
             );
             loto.Show();
+        }
+        // Nếu hệ thống đang chạy (_isReading=true) thì tự động resume LogFileWatcher
+        // cho form mới vừa được tạo lại sau khi đóng
+        private void AutoResumeForm(Form1 form)
+        {
+            if (!_isReading) return;
+            var values = new Dictionary<string, string>
+            {
+                { "Station1", DatabaseControllers.Instance.LoadDataFolder(cbxPort1.Text?.ToString(), "Port1") },
+                { "Station2", DatabaseControllers.Instance.LoadDataFolder(cbxPort2.Text?.ToString(), "Port2") },
+                { "Station3", DatabaseControllers.Instance.LoadDataFolder(cbxPort3.Text?.ToString(), "Port3") },
+                { "Station4", DatabaseControllers.Instance.LoadDataFolder(cbxPort4.Text?.ToString(), "Port4") },
+            };
+            var label = new Dictionary<string, string>
+            {
+                { "Station1", cbxPort1.SelectedItem?.ToString() },
+                { "Station2", cbxPort2.SelectedItem?.ToString() },
+                { "Station3", cbxPort3.SelectedItem?.ToString() },
+                { "Station4", cbxPort4.SelectedItem?.ToString() },
+            };
+            form.UpdateModel(label);
+            form.StartRead(values);
+            btnStart.ForeColor = System.Drawing.Color.Green;
         }
         // Helper: đóng an toàn 1 Form1, bỏ qua nếu null hoặc đã bị dispose
         private void CloseForm(Form1 form)

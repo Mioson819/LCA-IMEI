@@ -997,8 +997,8 @@ namespace LCA_Project
                 DatabaseControllers.Instance.InsertDataPortSummaNG(this.Nametation, NG);
                 DatabaseControllers.Instance.InsertDataPortSummaOK(this.Nametation, OK);
                 DatabaseControllers.Instance.InsertDataPortSummaInput(this.Nametation,
-                    DatabaseControllers.Instance.SelectDataPortSummaNG(this.Nametation) +
-                    DatabaseControllers.Instance.SelectDataPortSummaOk(this.Nametation));
+                DatabaseControllers.Instance.SelectDataPortSummaNG(this.Nametation) +
+                DatabaseControllers.Instance.SelectDataPortSummaOk(this.Nametation));
             }
             catch (Exception ex)
             {
