@@ -49,10 +49,13 @@ namespace LCA_Project
         private readonly SemaphoreSlim _pressGate = new SemaphoreSlim(1, 1);
         private Task _batchPollTask;
         private readonly SemaphoreSlim _batchGate = new SemaphoreSlim(1, 1);
-        // BUG-3 FIX: giới hạn ReadAlarm chỉ 1 task chạy cùng lúc
-        // Không có gate → mỗi 2500ms spawn 1 Task.Run mới bất kể task cũ xong chưa
-        // → tích lũy task → threadpool cạn → UI đơ
-        private readonly SemaphoreSlim _alarmGate = new SemaphoreSlim(1, 1);
+        // BUG-3 FIX: giới hạn ReadAlarm + Rset* chỉ 1 task mỗi loại cùng lúc.
+        // Không có gate → mỗi 2500ms spawn Task.Run mới bất kể task cũ xong chưa
+        // → tích lũy task → threadpool cạn → UI đơ.
+        private readonly SemaphoreSlim _alarmGate   = new SemaphoreSlim(1, 1);
+        private readonly SemaphoreSlim _rsetGate    = new SemaphoreSlim(1, 1);
+        private readonly SemaphoreSlim _rsetNGGate  = new SemaphoreSlim(1, 1);
+        private readonly SemaphoreSlim _rsetNG4Gate = new SemaphoreSlim(1, 1);
         private readonly List<LabelMonitor> _labelMonitors = new List<LabelMonitor>();
         private readonly List<BitMonitor> _bitMonitors = new List<BitMonitor>();
         private readonly TimeSpan _labelScanPeriod = TimeSpan.FromSeconds(11);
@@ -492,7 +495,14 @@ namespace LCA_Project
             if (!_addr.TryGetValue(nameStation, out map)) return;
             // BUG-3 FIX: nếu task ReadAlarm trước chưa xong thì bỏ qua tick này.
             // Không có gate cũ → mỗi 2500ms tạo Task.Run mới → tích lũy → threadpool cạn.
-            if (!_alarmGate.Wait(0)) return;
+            // GUARD: CTS check trước khi touch gate, vì Timer_Elapsed là async void —
+            // continuation có thể chạy SAU _alarmGate.Dispose() → ObjectDisposedException
+            // → unhandled trên threadpool → process crash (.NET 4.8).
+            if (_cts.IsCancellationRequested) return;
+            bool _alarmAcquired;
+            try { _alarmAcquired = _alarmGate.Wait(0); }
+            catch (ObjectDisposedException) { return; }
+            if (!_alarmAcquired) return;
             Task.Run(() =>
             {
                 try
@@ -1036,7 +1046,10 @@ namespace LCA_Project
                 try { _pollGate.Dispose(); } catch { }
                 try { _pressGate.Dispose(); } catch { }
                 try { _batchGate.Dispose(); } catch { }
-                try { _alarmGate.Dispose(); } catch { }
+                try { _alarmGate.Dispose(); }   catch { }
+                try { _rsetGate.Dispose(); }     catch { }
+                try { _rsetNGGate.Dispose(); }   catch { }
+                try { _rsetNG4Gate.Dispose(); }  catch { }
                 try { _cts.Dispose(); } catch { }
             }
         }
@@ -1264,17 +1277,20 @@ namespace LCA_Project
         public void Rset(string s) // Reset Tray Load
         {
             if (string.IsNullOrWhiteSpace(s)) return;
+            // BUG-3 FIX: gate giống _alarmGate — bỏ qua tick nếu task trước chưa xong
+            bool rAcquired; try { rAcquired = _rsetGate.Wait(0); } catch (ObjectDisposedException) { return; }
+            if (!rAcquired) return;
             Task.Run(() =>
             {
                 try
                 {
+                    if (_cts.IsCancellationRequested) return;
                     string word; int bit;
                     if (!TryParseTag(s, out word, out bit)) return;
                     bool b = plc.ReadBitFromWord(word, bit);
                     if (b == false && statusReset == false)
                     {
                         if (_Load != null) _Load.RsetLoad();
-                        // Mode 2 tray IMEI: reset _Load2 (pnlUnload) về vàng cùng lúc với _Load
                         if (_Load2 != null) _Load2.RsetLoad();
                         statusReset = true;
                         LogProgram.WriteLog("Reset Tray Load :" + this.Nametation, this.Nametation);
@@ -1283,7 +1299,6 @@ namespace LCA_Project
                     {
                         statusReset = false;
                         if (_Load != null) _Load.FullTray();
-                        // Mode 2 tray IMEI: FullTray cho _Load2 khi tray mới được đặt vào
                         if (_Load2 != null) _Load2.FullTray();
                     }
                 }
@@ -1291,15 +1306,19 @@ namespace LCA_Project
                 {
                     LogProgram.WriteLog("Rset error: " + ex, this.Nametation);
                 }
+                finally { try { _rsetGate.Release(); } catch (ObjectDisposedException) { } }
             });
         }
         public void RsetNG4(string s) // Reset Tray NG4
         {
             if (string.IsNullOrWhiteSpace(s)) return;
+            bool r4Acquired; try { r4Acquired = _rsetNG4Gate.Wait(0); } catch (ObjectDisposedException) { return; }
+            if (!r4Acquired) return;
             Task.Run(() =>
             {
                 try
                 {
+                    if (_cts.IsCancellationRequested) return;
                     string word; int bit;
                     if (!TryParseTag(s, out word, out bit)) return;
                     bool b = plc.ReadBitFromWord(word, bit);
@@ -1318,15 +1337,19 @@ namespace LCA_Project
                 {
                     LogProgram.WriteLog("RsetNG4 error: " + ex, this.Nametation);
                 }
+                finally { try { _rsetNG4Gate.Release(); } catch (ObjectDisposedException) { } }
             });
         }
         public void RsetNG(string s) // Reset Tray NG (Unload)
         {
             if (string.IsNullOrWhiteSpace(s)) return;
+            bool rNGAcquired; try { rNGAcquired = _rsetNGGate.Wait(0); } catch (ObjectDisposedException) { return; }
+            if (!rNGAcquired) return;
             Task.Run(() =>
             {
                 try
                 {
+                    if (_cts.IsCancellationRequested) return;
                     string word; int bit;
                     if (!TryParseTag(s, out word, out bit)) return;
                     bool b = plc.ReadBitFromWord(word, bit);
@@ -1345,6 +1368,7 @@ namespace LCA_Project
                 {
                     LogProgram.WriteLog("RsetNG error: " + ex, this.Nametation);
                 }
+                finally { try { _rsetNGGate.Release(); } catch (ObjectDisposedException) { } }
             });
         }
         // ====== Trigger ======

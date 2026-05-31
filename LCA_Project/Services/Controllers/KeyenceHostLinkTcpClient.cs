@@ -57,6 +57,8 @@ namespace Project_Visionpro.Program.PLC
                 bool succeeded = connectAr.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(3));
                 if (!succeeded)
                 {
+                    // BUG-D FIX: close WaitHandle để không leak kernel handle khi connect timeout
+                    try { connectAr.AsyncWaitHandle.Close(); } catch { }
                     try { _client.Close(); } catch { }
                     IsSessionStarted = false;
                     PropertyChangedEvent($"{Tcpstatus.disconnected}");
@@ -409,7 +411,13 @@ namespace Project_Visionpro.Program.PLC
                 {
                     Close();
                     Open();
-                    StartCommunication();
+                    // BUG-E FIX: kiểm tra return value của StartCommunication().
+                    // Nếu CR handshake thất bại (không throw exception) → ném exception thủ công
+                    // để catch block reschedule timer; tránh session chết âm thầm mà không có
+                    // recovery path nào được kích hoạt.
+                    if (!StartCommunication())
+                        throw new Exception("CR handshake failed after reconnect");
+                    MarkConnected();   // cập nhật UI "connected" ngay sau reconnect thành công
                     LogProgram.WriteLog($"[HostLinkTCP] Reconnected to {_ip}:{_port}");
                 }
                 catch (Exception ex)
