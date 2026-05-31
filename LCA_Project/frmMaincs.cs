@@ -477,8 +477,10 @@ namespace LCA_Project
                     this._form1.Bounds = new System.Drawing.Rectangle(work.Left, work.Top, W, H);
                     SubscribeForm(_form1);
                     _form1.Show();
-                    AutoResumeForm(_form1);
+                    // BUG-7 FIX: AutoResumeForm SAU delay — Form1_Load cần chạy xong trước
+                    // khi StartRead được gọi (logWatcher được khởi tạo trong Form1_Load)
                     await Task.Delay(500);
+                    AutoResumeForm(_form1);
                 }
                 //-----------------------------------------------------------------------------------------------------------------------
                 if (_form2 == null || _form2.IsDisposed)
@@ -489,8 +491,8 @@ namespace LCA_Project
                     this._form2.Bounds = new System.Drawing.Rectangle(work.Left + W, work.Top, W, H);
                     SubscribeForm(_form2);
                     _form2.Show();
-                    AutoResumeForm(_form2);
                     await Task.Delay(500);
+                    AutoResumeForm(_form2);
                 }
                 //-----------------------------------------------------------------------------------------------------------------------
                 if (_form3 == null || _form3.IsDisposed)
@@ -501,8 +503,8 @@ namespace LCA_Project
                     this._form3.Bounds = new System.Drawing.Rectangle(work.Left, work.Top + H, W, H);
                     SubscribeForm(_form3);
                     _form3.Show();
-                    AutoResumeForm(_form3);
                     await Task.Delay(500);
+                    AutoResumeForm(_form3);
                 }
                 //-----------------------------------------------------------------------------------------------------------------------
                 if (_form4 == null || _form4.IsDisposed)
@@ -513,6 +515,7 @@ namespace LCA_Project
                     this._form4.Bounds = new System.Drawing.Rectangle(work.Left + W, work.Top + H, W, H);
                     SubscribeForm(_form4);
                     _form4.Show();
+                    await Task.Delay(500);
                     AutoResumeForm(_form4);
                 }
                 btnStart.Enabled = true;

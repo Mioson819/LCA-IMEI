@@ -49,6 +49,10 @@ namespace LCA_Project
         private readonly SemaphoreSlim _pressGate = new SemaphoreSlim(1, 1);
         private Task _batchPollTask;
         private readonly SemaphoreSlim _batchGate = new SemaphoreSlim(1, 1);
+        // BUG-3 FIX: giới hạn ReadAlarm chỉ 1 task chạy cùng lúc
+        // Không có gate → mỗi 2500ms spawn 1 Task.Run mới bất kể task cũ xong chưa
+        // → tích lũy task → threadpool cạn → UI đơ
+        private readonly SemaphoreSlim _alarmGate = new SemaphoreSlim(1, 1);
         private readonly List<LabelMonitor> _labelMonitors = new List<LabelMonitor>();
         private readonly List<BitMonitor> _bitMonitors = new List<BitMonitor>();
         private readonly TimeSpan _labelScanPeriod = TimeSpan.FromSeconds(11);
@@ -486,12 +490,14 @@ namespace LCA_Project
         {
             (string sendDm, string statusTm, string alarmTm, string triggerMrBase) map;
             if (!_addr.TryGetValue(nameStation, out map)) return;
+            // BUG-3 FIX: nếu task ReadAlarm trước chưa xong thì bỏ qua tick này.
+            // Không có gate cũ → mỗi 2500ms tạo Task.Run mới → tích lũy → threadpool cạn.
+            if (!_alarmGate.Wait(0)) return;
             Task.Run(() =>
             {
-                // Nếu form đang đóng thì không làm gì cả
-                if (_cts.IsCancellationRequested) return;
                 try
                 {
+                    if (_cts.IsCancellationRequested) return;
                     ushort value = plc.ReadUInt16(map.alarmTm);
                     if (value == 0)
                     {
@@ -499,8 +505,15 @@ namespace LCA_Project
                         {
                             if (_frmAlarm != null)
                             {
-                                // ← SafeBeginInvoke thay cho this.BeginInvoke
-                                SafeBeginInvoke((MethodInvoker)(() => { _frmAlarm.Close(); }));
+                                SafeBeginInvoke((MethodInvoker)(() =>
+                                {
+                                    if (_frmAlarm != null && !_frmAlarm.IsDisposed)
+                                    {
+                                        _frmAlarm.Close();
+                                        _frmAlarm.Dispose();
+                                        _frmAlarm = null;
+                                    }
+                                }));
                             }
                         }
                         catch (Exception ex)
@@ -528,9 +541,15 @@ namespace LCA_Project
                     if (s != _beforAlarmText)
                     {
                         _beforAlarmText = s;
-                        // ← SafeBeginInvoke thay cho this.BeginInvoke
+                        // BUG-8 FIX: dispose instance cũ trước khi tạo mới,
+                        // tránh tích lũy GDI handle sau nhiều giờ chạy máy.
                         SafeBeginInvoke((MethodInvoker)(() =>
                         {
+                            if (_frmAlarm != null && !_frmAlarm.IsDisposed)
+                            {
+                                _frmAlarm.Close();
+                                _frmAlarm.Dispose();
+                            }
                             _frmAlarm = new frmAlarm(s, this.plc, this.nameStation);
                             _frmAlarm.Location = new Point(this.Location.X, this.Location.Y);
                             _frmAlarm.Model = lblModel.Text.ToString();
@@ -543,6 +562,10 @@ namespace LCA_Project
                 catch (Exception ex)
                 {
                     LogProgram.WriteLog("ReadAlarm error: " + ex, this.Nametation);
+                }
+                finally
+                {
+                    try { _alarmGate.Release(); } catch (ObjectDisposedException) { }
                 }
             });
         }
@@ -1013,6 +1036,7 @@ namespace LCA_Project
                 try { _pollGate.Dispose(); } catch { }
                 try { _pressGate.Dispose(); } catch { }
                 try { _batchGate.Dispose(); } catch { }
+                try { _alarmGate.Dispose(); } catch { }
                 try { _cts.Dispose(); } catch { }
             }
         }

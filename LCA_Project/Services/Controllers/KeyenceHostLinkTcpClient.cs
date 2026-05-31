@@ -48,10 +48,22 @@ namespace Project_Visionpro.Program.PLC
             {
                 IsSessionStarted = true;
                 _client = new TcpClient();
-                // FIX PLC-3: đặt timeout cho kết nối và đọc để tránh treo thread vô hạn
                 _client.SendTimeout = 2000;
                 _client.ReceiveTimeout = 2000;
-                _client.Connect(_ip, _port);
+                // BUG-1 FIX: Connect() đồng bộ không có timeout riêng — OS default có thể block 75s
+                // trong khi _ioLock đang được giữ → toàn bộ 4 Form1 bị đơ.
+                // Dùng BeginConnect + WaitOne(3s) để giới hạn block tối đa 3 giây.
+                IAsyncResult connectAr = _client.BeginConnect(_ip, _port, null, null);
+                bool succeeded = connectAr.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(3));
+                if (!succeeded)
+                {
+                    try { _client.Close(); } catch { }
+                    IsSessionStarted = false;
+                    PropertyChangedEvent($"{Tcpstatus.disconnected}");
+                    LogProgram.WriteLog($"[HostLinkTCP] Connect timeout (3s) to {_ip}:{_port}");
+                    return;
+                }
+                _client.EndConnect(connectAr);
                 _stream = _client.GetStream();
                 _stream.ReadTimeout = 2000;
                 _stream.WriteTimeout = 2000;
@@ -125,9 +137,12 @@ namespace Project_Visionpro.Program.PLC
         }
         // Gọi bên trong _ioLock. Chỉ khởi động timer lần đầu để tránh reset đếm ngược
         // mỗi khi một trong 4 Form1 gặp lỗi liên tiếp → reconnect bị trì hoãn vô hạn.
+        // BUG-2 FIX: bỏ điều kiện _isConnected — nó mặc định false và chỉ được set true
+        // sau khi có read/write thành công. Nếu PLC chưa bao giờ kết nối được thì
+        // _isConnected mãi false → reconnect timer không bao giờ khởi động → stuck forever.
         private void StartReconnectIfNeeded()
         {
-            if (_isConnected && !_reconnectPending)
+            if (!_reconnectPending)
             {
                 _reconnectPending = true;
                 _timer.Elapsed -= Reconnect;
