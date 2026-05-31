@@ -1100,6 +1100,7 @@ namespace LCA_Project
         private void ResetWork_Click(object sender, EventArgs e)
         {
             if (_Load != null) _Load.ResetLoad();
+            if (_Load2 != null) _Load2.ResetLoad();   // IMEI mode 2 tray
         }
 
         private async void MouseUps(object sender, MouseEventArgs e)
@@ -1128,6 +1129,7 @@ namespace LCA_Project
         private void SetEmptyWork_Click(object sender, EventArgs e)
         {
             if (_Load != null) _Load.SetEmptyLoad();
+            if (_Load2 != null) _Load2.SetEmptyLoad();  // IMEI mode 2 tray
         }
 
         private void ResetCompelete_Click(object sender, EventArgs e)
