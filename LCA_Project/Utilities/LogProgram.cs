@@ -10,28 +10,23 @@ namespace LCA_Project.Utilities
     public class LogProgram
     {
         private static readonly string LogPath = Path.Combine(Environment.CurrentDirectory, "LogProgram");
-
         // --- shared (no port) queues ---
         private static readonly Queue<Tuple<string, DateTime>> LogQueue = new Queue<Tuple<string, DateTime>>();
         private static readonly Queue<Tuple<string, DateTime>> MesLogQueue = new Queue<Tuple<string, DateTime>>();
         private static readonly object LogLock = new object();
         private static readonly object MesLogLock = new object();
-
         // --- per-port queues: key = portName (PORT1 / PORT2 / PORT3 / PORT4) ---
         private static readonly Dictionary<string, Queue<Tuple<string, DateTime>>> PortLogQueues
             = new Dictionary<string, Queue<Tuple<string, DateTime>>>();
         private static readonly Dictionary<string, Queue<Tuple<string, DateTime>>> PortMesLogQueues
             = new Dictionary<string, Queue<Tuple<string, DateTime>>>();
         private static readonly object PortLock = new object();
-
         private static bool isRunning = false;
         private static Thread logThread;
-
         static LogProgram()
         {
             StartLogThread();
         }
-
         // --- shared (no port) ---
         public static void WriteLog(string log)
         {
@@ -40,7 +35,6 @@ namespace LCA_Project.Utilities
                 LogQueue.Enqueue(new Tuple<string, DateTime>(log, DateTime.Now));
             }
         }
-
         public static void MesWriteLog(string log)
         {
             lock (MesLogLock)
@@ -48,7 +42,6 @@ namespace LCA_Project.Utilities
                 MesLogQueue.Enqueue(new Tuple<string, DateTime>(log, DateTime.Now));
             }
         }
-
         // --- per-port overloads ---
         public static void WriteLog(string log, string portName)
         {
@@ -59,7 +52,6 @@ namespace LCA_Project.Utilities
                 PortLogQueues[portName].Enqueue(new Tuple<string, DateTime>(log, DateTime.Now));
             }
         }
-
         public static void MesWriteLog(string log, string portName)
         {
             lock (PortLock)
@@ -69,7 +61,6 @@ namespace LCA_Project.Utilities
                 PortMesLogQueues[portName].Enqueue(new Tuple<string, DateTime>(log, DateTime.Now));
             }
         }
-
         private static void StartLogThread()
         {
             if (isRunning) return;
@@ -92,7 +83,6 @@ namespace LCA_Project.Utilities
             logThread.IsBackground = true;
             logThread.Start();
         }
-
         private static void FlushLogs()
         {
             // --- shared queues ---
@@ -117,7 +107,6 @@ namespace LCA_Project.Utilities
                 string filename = Path.Combine(LogPath, "Mes_" + item.Item2.ToString("dd_MM_yyyy") + ".txt");
                 File.AppendAllText(filename, "---" + item.Item2.ToString("HH:mm:ss:fff") + " " + item.Item1 + Environment.NewLine);
             }
-
             // --- per-port queues ---
             Dictionary<string, List<Tuple<string, DateTime>>> portLogsSnapshot;
             Dictionary<string, List<Tuple<string, DateTime>>> portMesLogsSnapshot;
@@ -159,7 +148,6 @@ namespace LCA_Project.Utilities
                 }
             }
         }
-
         public static void Stop()
         {
             isRunning = false;

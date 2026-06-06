@@ -24,7 +24,6 @@ namespace LCA_Project.Form.Signal
         // Được set từ ngoài vào (Form1 gọi frmAlarm.PcType = logWatcher.PcType)
         public string PcType { get; set; } = "Nano";
         private bool IsNano => string.Equals(PcType, "Nano", StringComparison.OrdinalIgnoreCase);
-
         private string filePattern
         {
             get

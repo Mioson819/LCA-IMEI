@@ -250,6 +250,13 @@ namespace Bottom_Sorting.Services.Utilities
             {
                 _runningTasks.Add(Task.Run(() => LoopLoad(values[0], values[1], values[2], token), token));
             }
+            else if (values.Count == 5)
+            {
+                // DataforloadImei có TakePointOK (values[4]) — chạy LoopLoadImei:
+                // TakePointOK fire → robot đặt sản phẩm PASS vào pnlUnload → đổi xanh đúng vị trí.
+                // values: [0]=nXULoadNGNow, [1]=mYULoadNGNow, [2]=TakePointNG, [3]=ResetTrayNG, [4]=TakePointOK
+                _runningTasks.Add(Task.Run(() => LoopLoadImei(values[0], values[1], values[4], token), token));
+            }
             else if (values.Count == 9)
             {
                 _runningTasks.Add(Task.Run(() => LoopNG4(values[0], values[1], values[2], values[3], values[4], values[7], values[8], token), token));
@@ -348,9 +355,52 @@ namespace Bottom_Sorting.Services.Utilities
                 catch (Exception ex) { LogProgram.WriteLog($"[Load] {ex.Message}"); }
             }
         }
+        /// <summary>
+        /// Loop dành riêng cho DataforloadImei có cột TakePointOK (mode 2 tray IMEI).
+        /// Chỉ theo dõi tín hiệu TakePointOK — khi PLC bật bit này, robot đã đặt sản phẩm
+        /// PASS vào đúng vị trí trong pnlUnload → đọc toạ độ và đổi màu xanh.
+        /// NG product đã được xử lý bởi _NG4._takPointLoad routing → đỏ.
+        /// </summary>
+        private async Task LoopLoadImei(string _nX1, string _nY1, string _signalOK, CancellationToken token)
+        {
+            this.nX = 0;
+            this.nY = 0;
+            while (!token.IsCancellationRequested)
+            {
+                try
+                {
+                    if (TryReadBitFromWord(_signalOK, out bool trig) && trig)
+                    {
+                        if (TryReadInt16(_nX1, out short s1) && TryReadInt16(_nY1, out short s2))
+                        {
+                            SafeUI(() => UpdateLabel(s1, s2, 0, 0));  // classify=0 → xanh
+                            LogProgram.WriteLog($"{NameStation} LoopLoadImei Pass tại [{s1}-{s2}]");
+                            await Task.Delay(1000, token);
+                        }
+                    }
+                    await Task.Delay(300, token);
+                }
+                catch (OperationCanceledException) { }
+                catch (Exception ex) { LogProgram.WriteLog($"[LoadImei] {ex.Message}"); }
+            }
+        }
         private void ResetLocalState()
         {
             this.nX = 0; this.nY = 0; this.classify = 0; this.Out = 0; this.nYNG = 0; this.nXNG = 0;
+        }
+        /// <summary>
+        /// Gọi từ Form1.HandleLogLine khi logwatcher đọc về Pass (value == 0) trong mode 2 tray IMEI.
+        /// Đọc vị trí hiện tại của sản phẩm từ PLC (values[0]=X, values[1]=Y) rồi tô màu xanh.
+        /// SafeUI dùng BeginInvoke nên an toàn gọi từ background thread (logwatcher callback).
+        /// </summary>
+        public void MarkCurrentAsPass()
+        {
+            if (values == null || values.Count < 2) return;
+            if (TryReadInt16(values[0], out short x) && TryReadInt16(values[1], out short y))
+            {
+                LogProgram.WriteLog($"{NameStation} MarkCurrentAsPass: vị trí [{x}-{y}] → xanh");
+                SafeUI(() => UpdateLabel((int)x, (int)y, 0, 0));
+            }
         }
         public void UpdateLabel(int row, int colums, int classify, int Out)
         {

@@ -480,7 +480,6 @@
             this.tableLayoutPanel5.ResumeLayout(false);
             this.tableLayoutPanel5.PerformLayout();
             this.ResumeLayout(false);
-
         }
         #endregion
         private Guna.UI2.WinForms.Guna2Elipse guna2Elipse1;

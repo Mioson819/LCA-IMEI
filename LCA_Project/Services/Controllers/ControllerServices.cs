@@ -87,7 +87,6 @@ namespace LCA_Project.Services.Controllers
                 }
             }
         }
-
         private void UpdateStatus(object sender, bool status) // Update Alarm Cycle : frmAlarm
         {
             System.Windows.Forms.Label label = sender as System.Windows.Forms.Label;
@@ -106,7 +105,6 @@ namespace LCA_Project.Services.Controllers
                 }));
             }
         }
-
         private void UpdateStatusTextBox(object sender, string value) // Update Alarm Cycle : frmAlarm
         {
             Guna2TextBox textBox = sender as Guna2TextBox;

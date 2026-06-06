@@ -38,6 +38,16 @@ public class CameraAS : IDisposable
     private readonly object _lockReice = new object();
     // FIX Bug E: _connectLock bảo vệ Connect/Disconnect khỏi race với PingTimer
     private readonly object _connectLock = new object();
+    // BUG-5 FIX: generation counter — mỗi khi ConnectInternal tạo socket mới, tăng generation.
+    // ReceiveData callback truyền generation lúc BeginReceive; nếu không khớp → stale callback
+    // từ socket cũ, bỏ qua để tránh DisconnectSocketOnly() nhầm lên kết nối mới.
+    private volatile int _socketGeneration = 0;
+    // Helper class: gom buffer + generation vào 1 object để truyền qua AsyncState
+    private class ReceiveState
+    {
+        public byte[] Buffer;
+        public int Generation;
+    }
     private bool StatusChangeJob = true;
     private bool StatusSO = false;
     private string Idmodel { get; set; }
@@ -95,14 +105,29 @@ public class CameraAS : IDisposable
         try
         {
             DisconnectSocketOnly();
+            // BUG-5 FIX: tăng generation mỗi khi tạo socket mới.
+            // Callback ReceiveData từ socket cũ sẽ thấy generation không khớp và tự bỏ qua.
+            _socketGeneration++;
+            int gen = _socketGeneration;
             _clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            _clientSocket.Connect(new IPEndPoint(IPAddress.Parse(_ip), _port));
-            // FIX Bug A: cấp phát buffer cục bộ mới cho mỗi lần BeginReceive
-            byte[] localBuffer = new byte[1024];
+            // BUG-1 (camera): dùng BeginConnect + WaitOne(3s) thay vì Connect() đồng bộ
+            // tránh block _connectLock trong lúc PingTimerCallback đang chờ kết nối.
+            IAsyncResult connectAr = _clientSocket.BeginConnect(
+                new IPEndPoint(IPAddress.Parse(_ip), _port), null, null);
+            bool ok = connectAr.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(3));
+            if (!ok)
+            {
+                try { _clientSocket.Close(); } catch { }
+                IsConnected = false;
+                Console.WriteLine("Camera connect timeout");
+                return;
+            }
+            _clientSocket.EndConnect(connectAr);
+            var state = new ReceiveState { Buffer = new byte[1024], Generation = gen };
             try
             {
-                _clientSocket.BeginReceive(localBuffer, 0, localBuffer.Length, SocketFlags.None,
-                    new AsyncCallback(ReceiveData), localBuffer);
+                _clientSocket.BeginReceive(state.Buffer, 0, state.Buffer.Length, SocketFlags.None,
+                    new AsyncCallback(ReceiveData), state);
             }
             catch
             {
@@ -146,12 +171,23 @@ public class CameraAS : IDisposable
     }
     private void ReceiveData(IAsyncResult ar)
     {
-        // FIX Bug A: lấy buffer từ AsyncState (cục bộ của lần BeginReceive này)
-        byte[] localBuffer = (byte[])ar.AsyncState;
+        // BUG-5 FIX: lấy ReceiveState (buffer + generation) thay vì chỉ byte[]
+        var state = (ReceiveState)ar.AsyncState;
+        // Lệnh cần gửi ra ngoài lock — xác định trong lock, gửi sau khi release.
+        // BUG-6 FIX: không giữ _lockReice trong lúc gọi SendCommand (có thể block
+        // nếu TCP send-buffer đầy → camera điếc cho đến khi timeout).
+        string commandToSend = null;
+        bool shouldInvokeSuccess = false;
+        string successIdmodel = null, successIdPLC = null;
+
         try
         {
             lock (_lockReice)
             {
+                // BUG-5 FIX: callback từ socket thế hệ cũ (bị đóng bởi PingTimer) → bỏ qua.
+                // Tránh DisconnectSocketOnly() nhầm lên kết nối MỚI đang hoạt động.
+                if (state.Generation != _socketGeneration) return;
+
                 var sock = _clientSocket;
                 if (sock == null) return;
                 int bytesRead;
@@ -159,47 +195,36 @@ public class CameraAS : IDisposable
                 {
                     bytesRead = sock.EndReceive(ar);
                 }
-                catch (ObjectDisposedException)
-                {
-                    DisconnectSocketOnly();
-                    return;
-                }
-                catch (SocketException)
-                {
-                    DisconnectSocketOnly();
-                    return;
-                }
-                catch (Exception)
-                {
-                    DisconnectSocketOnly();
-                    return;
-                }
+                catch (ObjectDisposedException) { DisconnectSocketOnly(); return; }
+                catch (SocketException)          { DisconnectSocketOnly(); return; }
+                catch (Exception)                { DisconnectSocketOnly(); return; }
+
                 if (bytesRead == 0)
                 {
-                    // TCP FIN nhận được: camera chủ động đóng kết nối.
-                    // Phải disconnect để IsConnected = false và ping timer sẽ reconnect.
-                    // Không xử lý sẽ khiến IsConnected = true nhưng không còn BeginReceive
-                    // nào được queue → camera "sống" nhưng bỏ lỡ mọi trigger response.
+                    // TCP FIN — camera chủ động đóng kết nối, PingTimer sẽ reconnect.
                     DisconnectSocketOnly();
                     return;
                 }
 
-                string stringData = Encoding.ASCII.GetString(localBuffer, 0, bytesRead);
+                string stringData = Encoding.ASCII.GetString(state.Buffer, 0, bytesRead);
                 Console.WriteLine($"{stringData}");
+
                 if (stringData.Contains("Welcome") && Idmodel != "" && IdPLC != "")
                 {
+                    // không cần gửi gì
                 }
                 else if (stringData == "User: " && Idmodel != "" && IdPLC != "")
                 {
-                    SendCommand($"admin\r\n");
+                    // BUG-4 FIX: bỏ \r\n trong string — SendCommand tự thêm \r\n
+                    commandToSend = "admin";
                 }
                 else if (stringData == "Password: " && Idmodel != "" && IdPLC != "")
                 {
-                    SendCommand($"\r\n");
+                    commandToSend = "";   // mật khẩu rỗng → SendCommand gửi "\r\n"
                 }
                 else if (stringData == "User Logged In\r\n" && Idmodel != "" && IdPLC != "")
                 {
-                    SendCommand($"SO0\r\n");
+                    commandToSend = "SO0";
                 }
                 else if (stringData == "1\r\n" && Idmodel != "" && IdPLC != " ")
                 {
@@ -207,19 +232,22 @@ public class CameraAS : IDisposable
                     {
                         StatusChangeJob = false;
                         StatusSO = true;
-                        SendCommand($"LF{Idmodel}_{IdPLC}.job\r\n");
+                        commandToSend = $"LF{Idmodel}_{IdPLC}.job";
                         _StatusJob?.Invoke("Watting", NamePort);
                     }
                     else if (StatusSO)
                     {
                         StatusSO = false;
-                        SendCommand($"SO1\r\n");
+                        commandToSend = "SO1";
                     }
-                    else if (StatusChangeJob == false && StatusSO == false)
+                    else if (!StatusChangeJob && !StatusSO)
                     {
                         StatusChangeJob = true;
                         StatusSO = true;
-                        Reconnect(Idmodel, IdPLC, 7890, "", "");
+                        // Lưu lại trước khi clear — dùng trong Reconnect bên ngoài lock
+                        shouldInvokeSuccess = true;
+                        successIdmodel = Idmodel;
+                        successIdPLC = IdPLC;
                         Idmodel = "";
                         IdPLC = "";
                         _StatusJob?.Invoke("Success", NamePort);
@@ -249,10 +277,6 @@ public class CameraAS : IDisposable
                                     xyaLocal[1] = s2[0].Trim() + (s2.Length > 1 ? s2[1].Trim() : "");
                                     var s3 = lines[4].Split('.');
                                     xyaLocal[2] = s3[0].Trim() + (s3.Length > 1 ? s3[1].Trim() : "");
-
-                                    // Dequeue lấy đúng station của lệnh GCP này (FIFO).
-                                    // Dùng Queue thay vì nameStation volatile để tránh race
-                                    // khi Station1 và Station2 cùng trigger cam1 gần nhau.
                                     string stationSnapshot;
                                     lock (_pendingLock)
                                     {
@@ -271,7 +295,6 @@ public class CameraAS : IDisposable
                             else
                             {
                                 LogProgram.WriteLog($"[CameraAS] GCP packet thiếu fields: '{stringSeparators}' (cần >= 5, nhận {lines.Length})");
-                                // Bỏ lệnh này ra khỏi queue để không lệch thứ tự
                                 lock (_pendingLock)
                                 {
                                     if (_pendingStations.Count > 0) _pendingStations.Dequeue();
@@ -280,42 +303,53 @@ public class CameraAS : IDisposable
                         }
                         else if (lines[0] == "GS" && lines[1] == "1")
                         {
-                            MessageBox.Show("Calib Hand Eye is running");
+                            LogProgram.WriteLog("[CameraAS] Calib Hand Eye is running (GS,1 received)");
                         }
                         else if (lines[0] == "HE" && lines[1] == "1")
                         {
                             if (CalibStep == 10)
-                            {
-                                MessageBox.Show("Calib Hand Eye is Step 10, Please chose Rotato - ");
-                            }
+                                LogProgram.WriteLog("[CameraAS] Calib HE Step 10 — Please choose Rotate -");
                             else if (CalibStep == 11)
-                            {
-                                MessageBox.Show("Calib Hand Eye is Step 11, Please chose Rotato + ");
-                            }
+                                LogProgram.WriteLog("[CameraAS] Calib HE Step 11 — Please choose Rotate +");
                             CalibStep++;
                         }
                         BeginReceiveNext(sock);
                         return;
                     }
                 }
+                // Arm receive tiếp theo TRONG lock — trước khi release để không bỏ sót gói
                 BeginReceiveNext(sock);
             }
+
+            // BUG-6 FIX: gửi lệnh SAU KHI release _lockReice
+            // → không block camera receive trong lúc TCP send chờ buffer
+            if (commandToSend != null)
+                SendCommand(commandToSend);
+
+            // Reconnect (thay đổi job) cũng sau khi release lock
+            if (shouldInvokeSuccess)
+                Reconnect(successIdmodel, successIdPLC, 7890, "", "");
         }
         catch
         {
             DisconnectSocketOnly();
         }
     }
-    // FIX Bug A: helper tạo buffer mới cho mỗi lần BeginReceive
+    // Helper tạo ReceiveState mới cho mỗi lần BeginReceive
     private void BeginReceiveNext(Socket sock)
     {
         try
         {
             if (sock != null && sock.Connected)
             {
-                byte[] newBuffer = new byte[1024];
-                sock.BeginReceive(newBuffer, 0, newBuffer.Length, SocketFlags.None,
-                    new AsyncCallback(ReceiveData), newBuffer);
+                // BUG-5 FIX: snapshot generation hiện tại để callback sau biết thuộc socket nào
+                var newState = new ReceiveState
+                {
+                    Buffer = new byte[1024],
+                    Generation = _socketGeneration
+                };
+                sock.BeginReceive(newState.Buffer, 0, newState.Buffer.Length, SocketFlags.None,
+                    new AsyncCallback(ReceiveData), newState);
             }
         }
         catch
